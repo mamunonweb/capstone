@@ -53,35 +53,7 @@ Key Libraries & NumPy 2.0.2, Pandas, Matplotlib, Seaborn, Scikit-learn, OpenCV, 
 \subsubsection{Dataset Description and Class Distribution}
 The experiments use the Potato Leaf Disease Dataset in Uncontrolled Environment \cite{shabrina2024novel}. It contains 3,076 color images of potato leaves taken in real fields. The images are grouped into 7 classes: six types of problems (Bacteria, Fungi, Nematode, Pest, Phytopthora and Virus) and one Healthy class.
 
-\textbf{Critical Finding: Class Imbalance.} The dataset is not balanced. As shown in Table~\ref{tab:class_dist}, Fungi is the largest class with 748 images, while Nematode has only 68 images. The ratio between the largest and the smallest class is about 11:1, and the Healthy class is also small (201 images). This imbalance is a challenge for training, because a model can reach a lower loss by favoring the large classes.
-
-\begin{table}[htbp]
-\caption{Detailed Class Distribution of the Potato Leaf Disease Dataset}
-\label{tab:class_dist}
-\begin{center}
-\begin{tabularx}{0.85\textwidth}{| X | X | c |}
-\hline
-\textbf{Plant Name} & \textbf{Disease / Health Status} & \textbf{Number of Images} \\
-\hline
-Potato & Fungi & 748 \\
-\hline
-Potato & Pest & 611 \\
-\hline
-Potato & Bacteria & 569 \\
-\hline
-Potato & Virus & 532 \\
-\hline
-Potato & Phytopthora & 347 \\
-\hline
-Potato & Healthy & 201 \\
-\hline
-Potato & Nematode & 68 \\
-\hline
-\textbf{Total Images} & & \textbf{3,076} \\
-\hline
-\end{tabularx}
-\end{center}
-\end{table}
+\textbf{Critical Finding: Class Imbalance.} The dataset is not balanced. As summarized earlier in Table~\ref{tab:class_dist}, Fungi is the largest class with 748 images (24.32\%), while Nematode has only 68 images (2.21\%). The ratio between the largest and the smallest class is about 11:1, and the Healthy class is also small (201 images, 6.53\%). This imbalance is a challenge for training, because a model can reach a lower loss by favoring the large classes.
 
 \subsubsection{Exploratory Data Analysis (EDA)}
 Prior to model training, a comprehensive Exploratory Data Analysis (EDA) was conducted to understand the fundamental characteristics of the Potato Leaf Disease Dataset. This step was crucial for identifying potential biases, understanding image properties, and determining the necessary preprocessing strategies.
@@ -236,7 +208,7 @@ Non-trainable Parameters & & 928 & \\
 \end{table}
 
 \subsubsection{ResNet50 (Frozen Backbone)}
-ResNet50 was implemented as a deep benchmark model. The base network was loaded without its top classification layers (\texttt{include\_top = False}). Because pre-trained ImageNet weights could not be downloaded in the Kaggle session, the base was created with random weights (\texttt{weights = None}) and then frozen (\texttt{trainable = False}). As illustrated in Figure~\ref{fig:resnet_arch}, a custom classification head (\texttt{GlobalAveragePooling2D}, \texttt{Dense(64)}, \texttt{BatchNormalization}, Swish, \texttt{Dropout(0.3)}, and \texttt{Dense(7)} Softmax) was attached. As summarized in Table~\ref{tab:resnet_params}, the total parameter count is 23,719,559 (90.48 MB), with only 131,719 trainable parameters in the head.
+ResNet50 was implemented as a deep benchmark model. The base network was loaded without its top classification layers (\texttt{include\_top = False}). Because pre-trained ImageNet weights could not be downloaded in the Kaggle session, the base was created with random weights (\texttt{weights = None}) and then frozen (\texttt{trainable = False}). As illustrated in Figure~\ref{fig:resnet_arch}, a custom classification head (Global Average Pooling, \texttt{Dense(64)}, \texttt{BatchNormalization}, Swish, \texttt{Dropout(0.3)}, and \texttt{Dense(7)} Softmax) was attached. As summarized in Table~\ref{tab:resnet_params}, the total parameter count is 23,719,559 (90.48 MB), with only 131,719 trainable parameters in the head.
 
 \begin{figure}[htbp]
 \centering
@@ -300,7 +272,32 @@ Non-trainable Parameters & 34,240 (Batch Normalization statistics) \\
 \end{table}
 
 \subsection{Evaluation Metrics}
-All models were compiled with the Adam optimizer (initial learning rate $0.001$) and Categorical Crossentropy loss with label smoothing ($0.1$). Performance on the 308 unseen test images was evaluated using Accuracy, Test Loss, Precision, Recall, F1-Score, Confusion Matrices, micro-average ROC-AUC, inference latency (ms/image on CPU), and saved model size (MB).
+All models were compiled with the Adam optimizer (initial learning rate $0.001$) and Categorical Cross-Entropy loss with label smoothing ($\epsilon = 0.1$). Performance on the $N = 308$ unseen test images across the $C = 7$ classes was evaluated using standard multi-class classification and efficiency metrics \cite{grandini2020metrics}:
+\begin{itemize}
+    \item \textbf{Label-Smoothed Categorical Cross-Entropy Loss:} Soft targets $y^{\text{LS}}_k = (1 - \epsilon) y_k + \frac{\epsilon}{C}$ with $\epsilon = 0.1$ are used to compute
+    \begin{equation}
+    \mathcal{L} = -\sum_{k=1}^{C} y^{\text{LS}}_k \log(\hat{p}_k),
+    \end{equation}
+    where $\hat{p}_k$ is the predicted softmax probability for class $k$.
+    \item \textbf{Overall Accuracy:} The fraction of correctly classified samples across all classes:
+    \begin{equation}
+    \text{Accuracy} = \frac{\sum_{k=1}^{C} \text{TP}_k}{N}.
+    \end{equation}
+    \item \textbf{Per-Class Precision, Recall, and F1-Score:} For each class $k$, using True Positives ($\text{TP}_k$), False Positives ($\text{FP}_k$), and False Negatives ($\text{FN}_k$):
+    \begin{equation}
+    \begin{aligned}
+    \text{Precision}_k &= \frac{\text{TP}_k}{\text{TP}_k + \text{FP}_k}, \qquad
+    \text{Recall}_k = \frac{\text{TP}_k}{\text{TP}_k + \text{FN}_k}, \\
+    \text{F1}_k &= \frac{2 \cdot \text{Precision}_k \cdot \text{Recall}_k}{\text{Precision}_k + \text{Recall}_k}.
+    \end{aligned}
+    \end{equation}
+    \item \textbf{Macro-Average F1-Score:} Treats every class equally regardless of sample count, making it sensitive to single-class collapse on imbalanced datasets:
+    \begin{equation}
+    \text{Macro-F1} = \frac{1}{C} \sum_{k=1}^{C} \text{F1}_k.
+    \end{equation}
+    \item \textbf{Confusion Matrix \& Micro-Average ROC-AUC:} Confusion matrices reveal inter-class misclassifications and majority-class collapse, while micro-average Receiver Operating Characteristic Area Under the Curve (ROC-AUC) evaluates probability ranking quality across all class-threshold pairs relative to random chance ($0.50$).
+    \item \textbf{Computational Efficiency Metrics:} Single-image CPU inference latency (ms/image) and serialized model size (MB) quantify edge-deployment suitability.
+\end{itemize}
 
 \subsection{Performance Analysis}
 
@@ -374,11 +371,13 @@ On the 308 test images, ResNet50 achieved a Test Accuracy of 31.82\% and a Test 
 \hline
 Accuracy & 31.82\% \\
 \hline
-Macro Avg (Precision) & 0.52 \\
+Macro Average (Precision) & 0.52 \\
 \hline
-Macro Avg (Recall) & 0.27 \\
+Macro Average (Recall) & 0.27 \\
 \hline
-Weighted Avg F1-Score & 0.28 \\
+Macro Average (F1-Score) & 0.27 \\
+\hline
+Weighted Average F1-Score & 0.28 \\
 \hline
 \end{tabularx}
 \end{center}
@@ -420,11 +419,13 @@ On the test set, MobileNetV2 achieved 24.35\% accuracy and 1.8593 test loss (Tab
 \hline
 Accuracy & 24.35\% \\
 \hline
-Macro Avg (Precision) & 0.03 \\
+Macro Average (Precision) & 0.03 \\
 \hline
-Macro Avg (Recall) & 0.14 \\
+Macro Average (Recall) & 0.14 \\
 \hline
-Weighted Avg F1-Score & 0.10 \\
+Macro Average (F1-Score) & 0.06 \\
+\hline
+Weighted Average F1-Score & 0.10 \\
 \hline
 \end{tabularx}
 \end{center}
@@ -446,6 +447,15 @@ Weighted Avg F1-Score & 0.10 \\
 
 \subsection{Key Findings and Discussions}
 
+\subsubsection{Synthesis of Experimental Findings}
+Evaluating all three architectures on the 308 unseen test images reveals four primary technical insights:
+\begin{enumerate}
+    \item \textbf{Impact of Compute and Weight Constraints on Convergence:} Because CUDA failed to initialize and pre-trained ImageNet weights could not be downloaded in the Kaggle session, training ran on the CPU for only 6--10 epochs. Under this regime, both the from-scratch Custom CNN (19.81\% accuracy, macro F1 0.05) and MobileNetV2 (24.35\% accuracy, weighted F1 0.10) collapsed to predicting a single majority class (Pest and Fungi, respectively).
+    \item \textbf{Ranking Signal in Frozen ResNet50:} Despite using a frozen, randomly initialized backbone, ResNet50 achieved the highest accuracy (31.82\%), lowest loss (1.7336), and a micro-average ROC-AUC of 0.7688, demonstrating that random multi-scale residual projections retained enough separability for the trainable head to learn partial class ranking (e.g., Virus F1 0.54).
+    \item \textbf{Field Complexity vs.\ Class Skew:} Uncontrolled backgrounds (soil, plastic mulch, hands) paired with an 11:1 class skew heavily penalized minority classes (Healthy F1 0.00 in all three models; Nematode 7 test images). Class-weighted loss and GPU-accelerated ImageNet fine-tuning are essential to unlock fair architectural comparisons.
+    \item \textbf{Architectural Compactness Advantage Preserved:} The Custom CNN occupies 1.98~MB (162,887 parameters) and executes at $\sim 52.7$~ms/image on CPU---$\sim 47\times$ smaller and $\sim 2.6\times$ faster than ResNet50 (92.12~MB, $\sim 136.7$~ms/image)---confirming its structural suitability for mobile deployment once properly retrained.
+\end{enumerate}
+
 \subsubsection{Explainable AI (XAI) Validation Results}
 Grad-CAM was applied to the last convolutional layer (\texttt{conv2d\_5}) of a functional version of the Custom CNN to check whether predictions focus on leaf lesions or background noise (Figure~\ref{fig:gradcam}). Across the three sampled images (one Pest and two Fungi leaves, all predicted as Phytopthora with confidence 0.14), the heatmaps spread across borders, grid patterns, or bright background objects such as a white paper sheet.
 
@@ -459,13 +469,59 @@ Importantly, the notebook log shows that trained weights could not be loaded int
 \end{figure}
 
 \subsubsection{LLM-Based Advisory Results}
-The \texttt{google-genai} library was configured with a Gemini API key stored in Kaggle Secrets, and the pipeline (\texttt{get\_llm\_disease\_advice()} and \texttt{predict\_and\_explain()}, shown in Figure~\ref{fig:llm_pipeline}) was tested on a sample image from the Nematode folder. Because the saved model file was the untrained Grad-CAM network, the CNN predicted Phytopthora at 14.31\% confidence. The Gemini response correctly began with a low-confidence warning advising field inspection or consulting an agricultural extension agent, described Late Blight (\textit{Phytophthora infestans}) symptoms and favorable weather conditions, listed management and prevention steps (removing infected plants, certified seed, spacing, base watering, crop rotation), and avoided inventing pesticide doses. This demonstrates that the advisory module follows safety rules, though its diagnostic utility depends on retraining the underlying CNN.
+The \texttt{google-genai} library was configured with a Gemini API key stored in Kaggle Secrets, and the pipeline (\texttt{get\_llm\_disease\_advice()} and \texttt{predict\_and\_explain()}, shown in Figure~\ref{fig:llm_pipeline}) was tested on a sample image from the Nematode folder. Because the saved model file was the untrained Grad-CAM network, the CNN predicted Phytopthora at 14.31\% confidence. The Gemini response correctly began with a low-confidence warning advising field inspection or consulting an agricultural extension agent, described Late Blight (\textit{Phytophthora infestans}) symptoms and favorable weather conditions, listed management and prevention steps (removing infected plants, certified seed, spacing, base watering, crop rotation), and avoided inventing pesticide doses. This confirms that the advisory module follows safety rules end to end, though its diagnostic utility depends on retraining the underlying CNN.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.9\textwidth]{image/docx_image25.png}
 \caption{LLM-based disease advisory pipeline.}
 \label{fig:llm_pipeline}
+\end{figure}
+
+\subsubsection{Web Application Deployment and Interface Demonstration}
+To validate practical usability beyond the Kaggle notebook, the complete inference, Grad-CAM explainability, and Gemini LLM advisory workflow was deployed as a live FastAPI and React web application at \url{https://potato.mamunlab.com/}. Figures~\ref{fig:webapp_detect}--\ref{fig:webapp_info} demonstrate the five core operational screens of the deployed prototype. (Note: the interface screenshots below illustrate the end-to-end deployment workflow using an updated demonstration checkpoint, whereas the quantitative tables in Sections~4.5 and~4.7 report the reproducible CPU baseline from the primary experiment notebook.)
+
+\begin{itemize}
+    \item \textbf{Single-Image Detection Interface (Figure~\ref{fig:webapp_detect}):} Users upload a potato leaf photo (JPG or PNG up to 10~MB) via drag-and-drop or capture one directly using a device camera (\textit{Take a photo}), then trigger analysis with a single click. The top navigation bar provides switching between \textit{Detect}, \textit{Results}, \textit{Batch}, \textit{Chat}, and \textit{Info}, alongside \textbf{English/Bengali} language and \textbf{Light/Dark} theme toggles.
+    \item \textbf{Prediction, Grad-CAM Overlay, and PDF Export (Figure~\ref{fig:webapp_results}):} The \textit{Results} screen presents the predicted class and confidence score, a horizontal bar breakdown of top class probabilities, side-by-side original and Grad-CAM \textit{Attention overlay} visuals, an experimental attention-level badge with an explicit non-clinical caveat, and direct buttons to launch AI chat, inspect disease details, or download a formatted \textbf{PDF report}.
+    \item \textbf{Multi-Image Batch Analysis and CSV Export (Figure~\ref{fig:webapp_batch}):} The \textit{Batch} module processes up to 12 leaf images simultaneously (omitting Grad-CAM to keep batch inference fast), aggregates \textit{Healthy} vs.\ \textit{Disease} counts, displays per-image predictions, confidences, and Top-3 class probabilities, and exports the full summary table via \textbf{Download CSV}.
+    \item \textbf{Bilingual AI Disease Assistant Chat (Figure~\ref{fig:ai_assistant}):} Clicking \textit{Ask AI about this} passes the classifier's predicted condition and confidence directly into the \textit{Chat} tab, where farmers can converse with Gemini in either \textbf{Bengali} or \textbf{English} (shown in both Light and Dark themes) to receive practical, dosage-free management advice and reminders to consult local agricultural extension officers.
+    \item \textbf{Structured Disease Information Cards (Figure~\ref{fig:webapp_info}):} The \textit{Info} view organizes AI-generated guidance for the detected condition into five scannable sections---\textit{Overview}, \textit{Symptoms}, \textit{Possible causes}, \textit{Recommended actions}, and \textit{Prevention}---with a persistent footer reminding users that the output is a preliminary AI classification rather than a definitive diagnosis.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{image/Select file or Take photo.png}
+\caption{Deployed web application (\url{https://potato.mamunlab.com/}) \textit{Detect} page supporting drag-and-drop upload (up to 10~MB) and camera-based leaf capture.}
+\label{fig:webapp_detect}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{image/Detection results.png}
+\caption{\textit{Results} page displaying predicted class, top-class probabilities, side-by-side Grad-CAM attention overlay, experimental attention level, and PDF report export.}
+\label{fig:webapp_results}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{image/Batch analysis.png}
+\caption{\textit{Batch Analysis} page processing multiple leaf images simultaneously (up to 12 per batch) with Top-3 probability summaries and CSV export.}
+\label{fig:webapp_batch}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{image/Disease assistant - LLM.png}
+\caption{Interactive bilingual (Bengali and English, Light and Dark modes) \textit{Disease Assistant} chat interface grounded in the classifier's prediction.}
+\label{fig:ai_assistant}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{image/Disease overview.png}
+\caption{Structured \textit{Info} page presenting AI-generated Overview, Symptoms, Possible causes, Recommended actions, and Prevention cards.}
+\label{fig:webapp_info}
 \end{figure}
 
 \subsection{Comparison with State of the Art Model}
@@ -518,6 +574,35 @@ In the Radar Chart (Figure~\ref{fig:radar}), ResNet50 covers the largest area ac
 \caption{Efficiency Trade-off: Accuracy vs.\ Speed vs.\ Size.}
 \label{fig:tradeoff}
 \end{figure}
+
+Table~\ref{tab:sota_comp} situates the proposed baseline pipeline alongside established plant-disease studies from the literature. Prior landmark works by Mohanty et al.\ \cite{mohanty2016using}, Sladojevic et al.\ \cite{sladojevic2016deep}, Ferentinos \cite{ferentinos2018deep}, and Too et al.\ \cite{too2019comparative} reported very high accuracies (such as 99.53\% with VGG16 and $>99\%$ with AlexNet/GoogLeNet) primarily on plain-background laboratory datasets like PlantVillage using heavy architectures (up to $\sim 138$ million parameters) and GPU-accelerated ImageNet transfer learning, without providing visual XAI verification or farmer-facing LLM guidance. As Mohanty et al.\ \cite{mohanty2016using} and Shabrina et al.\ \cite{shabrina2024novel} demonstrated, accuracy drops sharply when models encounter cluttered field environments containing soil, hands, shadows, and mulch.
+
+In the reported CPU-only, randomly initialized baseline run, our models reach at most 31.82\% accuracy (ResNet50), well below the $>$95\% production threshold and below GPU-trained transfer-learning benchmarks. Rather than obscuring this gap, the comparison highlights the exact experimental gap (lack of GPU compute, ImageNet initialization, and class weighting) while establishing a uniquely integrated pipeline that pairs a 1.98~MB lightweight CNN option with Grad-CAM explainability and safety-constrained Gemini advisory.
+
+\begin{table}[htbp]
+\caption{Comparison of the Proposed Pipeline with State-of-the-Art Studies}
+\label{tab:sota_comp}
+\begin{center}
+\scriptsize
+\begin{tabularx}{\textwidth}{| p{2.3cm} | p{2.4cm} | p{2.3cm} | p{2.0cm} | p{1.6cm} | c | c |}
+\hline
+\textbf{Study} & \textbf{Dataset / Setting} & \textbf{Model(s)} & \textbf{Reported Outcome} & \textbf{Model Scale} & \textbf{XAI} & \textbf{LLM} \\
+\hline
+Mohanty et al.\ (2016) \cite{mohanty2016using} & PlantVillage (Lab, plain bg) & AlexNet, GoogLeNet & $>99\%$ (drops on field) & Heavy CNNs & No & No \\
+\hline
+Sladojevic et al.\ (2016) \cite{sladojevic2016deep} & 13 plant diseases & Deep CNN (CaffeNet) & Strong lab classification & Heavy CNN & No & No \\
+\hline
+Ferentinos (2018) \cite{ferentinos2018deep} & PlantVillage (58 classes) & VGG16, AlexNet, GoogLeNet & 99.53\% (VGG16) & $\sim 138$M params & No & No \\
+\hline
+Too et al.\ (2019) \cite{too2019comparative} & PlantVillage (fine-tuning) & DenseNet-121, ResNet, VGG & DenseNet-121 top performer & Moderate--Heavy & No & No \\
+\hline
+Shabrina et al.\ (2024) \cite{shabrina2024novel} & Uncontrolled Potato (3,076, 7 cls) & Field benchmark dataset & Establishes field benchmark & Standard CNNs & No & No \\
+\hline
+\textbf{This Study (CPU Baseline)} & Uncontrolled Potato (3,076, 7 cls) & Custom CNN, ResNet50, MobileNetV2 & 31.82\% (ResNet50, AUC 0.7688) & \textbf{0.16M (1.98~MB)} Custom CNN & \textbf{Yes} & \textbf{Yes} \\
+\hline
+\end{tabularx}
+\end{center}
+\end{table}
 
 \subsection*{Summary}
 This chapter presented the implementation and evaluation of the proposed system. ResNet50 achieved the highest test accuracy (31.82\%, AUC 0.7688), followed by MobileNetV2 (24.35\%) and the Custom CNN (19.81\%). While the Custom CNN is the smallest (1.98 MB) and much faster than ResNet50, both the Custom CNN and MobileNetV2 collapsed to single-class predictions under CPU-only, short-epoch training without ImageNet weights. The Grad-CAM and Gemini LLM pipelines were implemented end to end, providing a reproducible baseline ready for GPU retraining.
