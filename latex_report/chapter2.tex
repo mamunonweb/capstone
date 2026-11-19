@@ -29,25 +29,56 @@ Most of these studies used laboratory images with a plain background. To close t
 Transfer learning, where models pre-trained on large datasets like ImageNet are fine-tuned for specific tasks, has become the standard approach to overcome data scarcity \cite{pan2010survey}:
 \begin{itemize}
     \item \textbf{ResNet (Residual Networks):} Introduced by He et al. (2016), ResNet utilizes ``skip connections'' to solve the vanishing gradient problem in deep networks \cite{he2016deep}. Studies utilizing ResNet50 for crop disease diagnosis have consistently reported high accuracy, making it a robust benchmark model \cite{brahimi2017deep}.
-    \item \textbf{MobileNetV2:} To address the computational constraints of mobile deployment, Sandler et al. (2018) proposed MobileNetV2. It uses Depthwise Separable Convolutions and inverted residuals to drastically reduce parameter count and latency \cite{howard2017mobilenets}. While highly efficient, some studies suggest that MobileNet occasionally struggles with fine-grained disease patterns compared to deeper networks \cite{too2019comparative}.
-    \item \textbf{VGG and Inception:} Other architectures like VGG19 \cite{simonyan2015very} and InceptionV3 \cite{szegedy2015going} have also been widely used. While VGG offers excellent precision, its large size renders it impractical for real-time mobile applications.
+    \item \textbf{MobileNetV2:} To address the computational constraints of mobile deployment, Sandler et al. (2018) proposed MobileNetV2. It uses Depthwise Separable Convolutions and inverted residuals to drastically reduce parameter count and latency \cite{sandler2018mobilenetv2}. While highly efficient, some studies suggest that MobileNet occasionally struggles with fine-grained disease patterns compared to deeper networks \cite{too2019comparative}.
+    \item \textbf{VGG and Inception:} Other architectures like VGG19 \cite{simonyan2015very} and InceptionV3 \cite{szegedy2016rethinking} have also been widely used. While VGG offers excellent precision, its large size renders it impractical for real-time mobile applications.
 \end{itemize}
 
 \subsubsection{Data Augmentation and Optimization Techniques}
 To improve model robustness and prevent overfitting, various optimization techniques are employed. Data Augmentation (rotation, flipping, zooming) is widely used to artificially expand the training dataset, helping models generalize better to unseen images \cite{shorten2019survey}. Regularization techniques such as Dropout, introduced by Srivastava et al., randomly deactivate neurons during training to prevent complex co-adaptations \cite{srivastava2014dropout}. Furthermore, Batch Normalization \cite{ioffe2015batch} and modern activation functions like Swish \cite{ramachandran2017swish} have been shown to accelerate convergence and improve accuracy in deep networks.
 
 \subsubsection{Explainable AI (XAI) and Model Transparency}
-One of the critical criticisms of deep learning in agriculture is the ``Black Box'' nature of CNNs. Farmers need to trust why a model predicts a certain disease. Selvaraju et al. (2017) introduced Grad-CAM (Gradient-weighted Class Activation Mapping) to visualize the regions of interest in an image \cite{selvaraju2017grad}. Recent studies have started incorporating Grad-CAM to validate that models are focusing on leaf lesions rather than background noise \cite{todros2022explainable}. However, many proposed systems still lack this validation step, leaving their reliability in question.
+One of the critical criticisms of deep learning in agriculture is the ``Black Box'' nature of CNNs. Farmers need to trust why a model predicts a certain disease. Selvaraju et al. (2017) introduced Grad-CAM (Gradient-weighted Class Activation Mapping) to visualize the regions of interest in an image \cite{selvaraju2017grad}. Recent studies have started incorporating Grad-CAM and interpretable ML techniques to validate that models are focusing on leaf lesions rather than background noise \cite{ryo2022explainable}. However, many proposed systems still lack this validation step, leaving their reliability in question.
 
 \subsubsection{Large Language Models in Agriculture}
 Large Language Models (LLMs) such as GPT and Gemini can generate natural-language explanations and answer questions \cite{google2026gemini}. In agriculture, they can turn a technical prediction into advice that a farmer can understand. However, LLMs can produce wrong or invented information, so their output must be limited by careful prompts and checked by experts. In this work, the LLM does not make the diagnosis; it only explains the class predicted by the CNN.
+
+Table~\ref{tab:lit_summary} summarizes the key studies reviewed above, contrasting their dataset conditions, modeling techniques, reported performance, and remaining research gaps.
+
+\begin{table}[htbp]
+\caption{Summary of Key Literature in Plant Disease Detection}
+\label{tab:lit_summary}
+\begin{center}
+\scriptsize
+\begin{tabularx}{\textwidth}{| p{2.2cm} | p{2.4cm} | p{2.7cm} | p{2.3cm} | X |}
+\hline
+\textbf{Study} & \textbf{Dataset / Setting} & \textbf{Approach / Models} & \textbf{Reported Outcome} & \textbf{Key Gap Addressed in This Work} \\
+\hline
+Al-Hiary et al. (2011) \cite{alhiary2011fast} & Leaf images (controlled) & K-Means + Neural Networks & Effective segmentation baseline & Relies on hand-crafted features; sensitive to lighting and clutter. \\
+\hline
+Arivazhagan et al. (2013) \cite{arivazhagan2013detection} & Leaf texture samples & Color/GLCM texture + SVM & Accurate on small curated sets & Manual feature extraction does not scale to complex backgrounds. \\
+\hline
+Mohanty et al. (2016) \cite{mohanty2016using} & PlantVillage (lab plain background) & AlexNet, GoogLeNet & $>99\%$ on lab split & Sharp drop when tested on field/different background images. \\
+\hline
+Sladojevic et al. (2016) \cite{sladojevic2016deep} & 13 plant disease classes & Deep CNN (CaffeNet) & Validated end-to-end CNN & High resource demand; lacks XAI and actionable farmer advice. \\
+\hline
+Ferentinos (2018) \cite{ferentinos2018deep} & PlantVillage (58 classes) & VGG16, AlexNet, GoogLeNet & 99.53\% (VGG16) & $\sim 138$M parameters; too heavy for edge/mobile devices. \\
+\hline
+Too et al. (2019) \cite{too2019comparative} & PlantVillage (fine-tuning) & VGG, ResNet, DenseNet, Inception & DenseNet-121 highest accuracy & Evaluated on lab data; no field-background or LLM advisory study. \\
+\hline
+Ryo (2022) \cite{ryo2022explainable} & Agricultural data analysis (XAI review) & Post-hoc XAI \& interpretable ML & Synthesizes agricultural XAI methods & Highlights farmer trust deficit and need for lesion-grounded validation. \\
+\hline
+Shabrina et al. (2024) \cite{shabrina2024novel} & Potato Leaf (3,076 field images, 7 classes) & Benchmark uncontrolled field dataset & Realistic field benchmark & Severe class skew (11:1) and background clutter; no lightweight + XAI + LLM pipeline. \\
+\hline
+\end{tabularx}
+\end{center}
+\end{table}
 
 \subsection{Problem Analysis}
 Based on the comprehensive literature review, several key issues and research gaps have been identified that motivate this thesis:
 \begin{itemize}
     \item \textbf{Computational Inefficiency:} State-of-the-art models like VGG16 \cite{ferentinos2018deep} and ResNet50 \cite{he2016deep}, while accurate, are computationally heavy. They require significant memory and processing power, which are often unavailable in the low-end smartphones used by farmers in developing countries.
-    \item \textbf{The ``Accuracy vs. Efficiency'' Dilemma:} Existing lightweight models (like MobileNet) solve the size problem but sometimes struggle to capture fine-grained texture details of specific diseases compared to deeper networks \cite{palmer2019mobilenets, too2019comparative}. There is a need for a specialized architecture that bridges this gap---offering the speed of MobileNet with the precision of ResNet.
-    \item \textbf{Lack of Transparency (The Trust Deficit):} Most existing systems provide a simple text output (e.g., ``Healthy'' or ``Diseased''). Without visual evidence or explanation, these systems fail to build trust with human users. The integration of XAI is necessary to verify that the high accuracy is genuine and not a result of data bias \cite{todros2022explainable, amara2017deep}.
+    \item \textbf{The ``Accuracy vs. Efficiency'' Dilemma:} Existing lightweight models (like MobileNet) solve the size problem but sometimes struggle to capture fine-grained texture details of specific diseases compared to deeper networks \cite{kc2019depthwise, too2019comparative}. There is a need for a specialized architecture that bridges this gap---offering the speed of MobileNet with the precision of ResNet.
+    \item \textbf{Lack of Transparency (The Trust Deficit):} Most existing systems provide a simple text output (e.g., ``Healthy'' or ``Diseased''). Without visual evidence or explanation, these systems fail to build trust with human users. The integration of XAI is necessary to verify that the high accuracy is genuine and not a result of data bias \cite{ryo2022explainable, amara2017deep}.
 \end{itemize}
 
 \noindent \textbf{Conclusion of Analysis:} To solve these problems, this research proposes a four-part approach: (1) developing a Custom Lightweight CNN to minimize computational cost, (2) comparing it with ResNet50 and MobileNetV2 to benchmark performance, (3) using Grad-CAM to make the decisions transparent, and (4) adding an LLM advisory module to make the output useful for farmers.

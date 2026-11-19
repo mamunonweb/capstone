@@ -8,11 +8,39 @@
 While the technical implementation and performance metrics discussed in the previous chapters demonstrate the feasibility of the proposed plant disease detection system, it is equally important to evaluate the system through the lens of engineering standards, societal impact, and ethical considerations. This chapter outlines the compliance with industry standards adopted during development, analyzes the potential impact of this technology on agriculture and society, and discusses the ethical responsibilities associated with deploying AI in real-world scenarios. Furthermore, it highlights the technical challenges faced during the research and the constraints that define the scope of this work.
 
 \subsection{Sustainability Standards}
-To ensure the reliability, maintainability, and reproducibility of the research, strictly defined engineering and software standards were adhered to throughout the development lifecycle:
+To align the research with global sustainability goals and maintain rigorous software engineering practices, the project addresses both the United Nations Sustainable Development Goals (SDGs) and technical development standards.
+
+\subsubsection*{Alignment with UN Sustainable Development Goals (SDGs)}
+Automated, explainable crop-disease screening directly supports sustainable agricultural development across five UN SDGs summarized in Table~\ref{tab:sdg_alignment}:
+
+\begin{table}[htbp]
+\caption{Alignment of the Proposed System with UN Sustainable Development Goals}
+\label{tab:sdg_alignment}
+\begin{center}
+\begin{tabularx}{\textwidth}{| p{2.3cm} | p{3.6cm} | X |}
+\hline
+\textbf{UN SDG} & \textbf{Goal Title} & \textbf{Project Alignment and Mechanism} \\
+\hline
+SDG 2 & Zero Hunger & Early field-level diagnosis of potato diseases (such as late blight caused by \textit{Phytophthora infestans}, fungal, bacterial, and viral infections) helps smallholders curb yield losses and strengthen food security. \\
+\hline
+SDG 9 & Industry, Innovation, and Infrastructure & Advances resilient, inclusive agricultural AI by designing a 162,887-parameter lightweight CNN suitable for low-cost smartphones alongside reproducible open-source pipelines. \\
+\hline
+SDG 12 & Responsible Consumption and Production & Targeted identification and safety-constrained LLM guidance discourage blind, blanket pesticide spraying, reducing chemical waste and improving input efficiency. \\
+\hline
+SDG 13 & Climate Action & Helps farmers respond rapidly to climate-driven shifts in pest and pathogen outbreaks while minimizing unnecessary agrochemical production and field runoff. \\
+\hline
+SDG 15 & Life on Land & Reducing excessive fungicide and pesticide application protects soil biodiversity, pollinators, and nearby freshwater ecosystems from agricultural contamination. \\
+\hline
+\end{tabularx}
+\end{center}
+\end{table}
+
+\subsubsection*{Engineering and Software Standards}
+In addition to SDG alignment, strict engineering and evaluation standards were followed throughout the development lifecycle:
 \begin{itemize}
-    \item \textbf{Software Coding Standards (PEP 8):} The entire codebase was written in Python adhering to the PEP 8 style guide. This ensured consistent indentation, naming conventions (e.g., \texttt{snake\_case} for functions, \texttt{CamelCase} for classes), and code readability, making the project open-source friendly.
-    \item \textbf{Data Licensing Standards:} The dataset was obtained from a public Kaggle repository and is used only for educational and research purposes, following the license terms of its authors.
-    \item \textbf{Model Evaluation Standards:} Standard evaluation metrics defined by the machine learning community---Accuracy, Precision, Recall, F1-Score, and Confusion Matrix---were used to validate the models, ensuring the results are comparable with existing literature.
+    \item \textbf{Software Coding Standards (PEP 8):} The entire codebase was written in Python adhering to the PEP~8 style guide, ensuring consistent indentation, naming conventions (\texttt{snake\_case} for functions, \texttt{CamelCase} for classes), and maintainable open-source readability.
+    \item \textbf{Data Licensing Standards:} The dataset was obtained from a public Kaggle repository and is used solely for educational and research purposes in accordance with the authors' license terms \cite{shabrina2024novel}.
+    \item \textbf{Model Evaluation Standards:} Standard machine learning metrics---Accuracy, Precision, Recall, Macro/Weighted F1-Score, Confusion Matrix, and ROC-AUC---were computed on a strictly held-out 10\% test split ($N = 308$) with fixed random seed ($42$), ensuring transparent reproducibility \cite{grandini2020metrics}.
 \end{itemize}
 
 \subsection{Impacts on Society}
@@ -40,12 +68,12 @@ During the research and implementation phase, several significant challenges wer
 \end{itemize}
 
 \subsection{Constraints}
-Every research project operates within certain boundaries. The limitations of this work are outlined below:
+Every research project operates within practical technical, component, and financial boundaries. The key constraints governing this work are organized below:
 \begin{itemize}
-    \item \textbf{Dataset Scope:} The system is limited to the 7 classes of the potato dataset. It cannot detect diseases of other crops (for example, rice or wheat).
-    \item \textbf{Small Dataset Size:} With 3,076 images (and only 68 Nematode images), the dataset is small for training deep networks from scratch.
-    \item \textbf{Computational Resources:} Training was limited to 15 epochs for the Custom CNN and 10 epochs for the benchmark models at $224 \times 224$ resolution, and it ran on the CPU.
-    \item \textbf{Connectivity:} The LLM advisory module needs an internet connection to call the Gemini API, which can be a constraint in remote rural areas.
+    \item \textbf{Design Constraints:} The architecture enforces a fixed $224 \times 224 \times 3$ RGB input tensor, targets a compact footprint ($\le 2$~MB for the Custom CNN) with \texttt{GlobalAveragePooling2D} to remain mobile-compatible, preserves a final convolutional layer (\texttt{conv2d\_5}) compatible with Grad-CAM, constrains classification strictly to the 7 potato categories, and restricts the LLM prompt to non-diagnostic, dosage-free advisory generation.
+    \item \textbf{Component Constraints:} The dataset comprises 3,076 field images with an $11:1$ class skew (only 68 Nematode images), limiting from-scratch deep feature learning. Within the Kaggle execution environment, offline restrictions prevented downloading pre-trained ImageNet weights for ResNet50 and MobileNetV2, while TensorFlow/Keras serialization mismatches affected Grad-CAM weight loading. Furthermore, the advisory module depends on external Google Gemini API availability and active internet connectivity, which may be intermittent in rural farming areas.
+    \item \textbf{Budget and Resource Constraints:} Executed as an academic capstone project with zero commercial funding, the system relied exclusively on free-tier Kaggle compute and open-source software without paid GPU clusters or funding for custom field-data collection. When CUDA GPU initialization failed in the reported session, CPU-only fallback ($\sim 4$--$9$ minutes per epoch) constrained training to 6--10 epochs at $224 \times 224$ resolution. For the advisory layer, \texttt{gemini-3.1-flash-lite} is invoked once per prediction to stay within free/low-cost API quotas.
+    \item \textbf{Operational and Regulatory Constraints:} Because the reported baseline achieved 31.82\% accuracy with single-class collapse in two models, responsible engineering ethics prohibit deploying these checkpoints for real agricultural decisions until retrained on GPU with pre-trained weights and validated by domain experts.
 \end{itemize}
 
 \subsection{Timeline and Gantt Chart}
@@ -83,4 +111,4 @@ The second phase was dedicated to the practical execution, rigorous testing, and
 \end{figure}
 
 \subsection*{Summary}
-This chapter discussed the non-technical dimensions of the research. The project follows coding and data standards. The societal impact analysis showed the potential of the system for food security and environmental sustainability. Ethical issues such as class bias, misdiagnosis and responsible LLM use were addressed. Finally, the challenges of class imbalance, complex backgrounds and limited hardware, and the constraints of dataset size and connectivity, were described to give a realistic view of the current system.
+This chapter discussed the non-technical dimensions of the research. Section~5.1 aligned the project with five UN Sustainable Development Goals (SDGs 2, 9, 12, 13, and 15) alongside PEP~8 coding, data licensing, and evaluation standards. The societal impact analysis showed the potential of the system for food security and environmental sustainability. Ethical issues such as class bias, misdiagnosis and responsible LLM use were addressed. Finally, the challenges of class imbalance, complex backgrounds and limited hardware, together with Design, Component, Budget, and Operational constraints and the 26-week project timeline, were described to provide a realistic assessment of the current system.

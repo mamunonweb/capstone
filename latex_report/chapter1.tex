@@ -12,8 +12,8 @@ Traditionally, the identification of plant diseases relies on visual inspection 
 Despite the success of Deep Learning in agriculture, several challenges hinder the widespread adoption of these technologies in real-world scenarios:
 \begin{itemize}
     \item \textbf{Computational Complexity:} Most state-of-the-art models (like VGG16 or ResNet) are computationally expensive and require large memory storage. This makes them unsuitable for deployment on resource-constrained devices such as mobile phones or IoT edge devices used by farmers in the field \cite{sandler2018mobilenetv2}.
-    \item \textbf{Lack of Trust (The Black-Box Problem):} Deep Learning models operate as ``black boxes,'' meaning they provide a prediction without explaining why they made that decision. For a farmer or an agronomist, it is difficult to trust a model's diagnosis without visual evidence \cite{todros2022explainable}.
-    \item \textbf{Efficiency vs. Accuracy Trade-off:} Lightweight models (like MobileNet) are faster but often sacrifice accuracy compared to larger models. There is a need for a custom architecture that balances high accuracy with low computational cost \cite{palmer2019mobilenets}.
+    \item \textbf{Lack of Trust (The Black-Box Problem):} Deep Learning models operate as ``black boxes,'' meaning they provide a prediction without explaining why they made that decision. For a farmer or an agronomist, it is difficult to trust a model's diagnosis without visual evidence \cite{ryo2022explainable}.
+    \item \textbf{Efficiency vs. Accuracy Trade-off:} Lightweight models (like MobileNet) are faster but often sacrifice accuracy compared to larger models. There is a need for a custom architecture that balances high accuracy with low computational cost \cite{kc2019depthwise}.
 \end{itemize}
 This research addresses these problems by designing a Custom Lightweight CNN Model with a very small number of parameters, comparing it with ResNet50 and MobileNetV2 on real field images, integrating Explainable AI (XAI) to make the decisions visible, and adding a Large Language Model (LLM) module that explains the predicted disease to the farmer in simple language.
 
@@ -25,18 +25,18 @@ With the advent of Deep Learning, CNNs replaced traditional methods due to their
 \subsection{Research Objectives}
 The primary aim of this thesis is to develop an efficient and interpretable deep learning framework for plant disease detection. The specific objectives are:
 \begin{itemize}
-    \item To design and develop a Custom Lightweight CNN Model architecture for classifying 7 classes of potato leaf conditions (Bacteria, Fungi, Healthy, Nematode, Pest, Phytopthora and Virus) from the Potato Leaf Disease Dataset in Uncontrolled Environment \cite{shabrina2024novel}.
+    \item To design and develop a Custom Lightweight CNN Model architecture for classifying 7 classes of potato leaf conditions (Bacteria, Fungi, Healthy, Nematode, Pest, Phytopthora and Virus, using the dataset's exact class folder labels) from the Potato Leaf Disease Dataset in Uncontrolled Environment. % \cite{shabrina2024novel}
     \item To compare the performance of the proposed custom model with ResNet50 (heavyweight) and MobileNetV2 (lightweight) in terms of accuracy, loss, precision, recall, F1-score, ROC-AUC, model size and inference speed.
-    \item To implement Explainable AI (XAI) using Gradient-weighted Class Activation Mapping (Grad-CAM) to visualize the regions of interest in the leaf images, ensuring the model's reliability \cite{selvaraju2017grad}.
+    \item To implement Explainable AI (XAI) using Gradient-weighted Class Activation Mapping (Grad-CAM) to visualize the regions of interest in the leaf images, ensuring the model's reliability. % \cite{selvaraju2017grad}
     \item To integrate a Large Language Model (Google Gemini) that converts the predicted class and confidence into farmer-friendly management advice, and to analyze the efficiency trade-offs for real-world deployment.
 \end{itemize}
 
 \subsection{Motivations}
 The motivation behind this research stems from the urgent need to empower farmers with accessible technology:
 \begin{itemize}
-    \item \textbf{Technological Accessibility:} Farmers in developing regions often use low-end smartphones. Developing a lightweight model ensures that advanced AI diagnosis can run smoothly on these devices without needing expensive hardware or cloud connectivity \cite{hinton2012deep}.
-    \item \textbf{Food Security:} By enabling early and accurate detection of diseases, crop wastage can be significantly reduced, contributing to better food security and economic stability for farmers \cite{fao2017future, savary2019global}.
-    \item \textbf{Trustworthy AI:} Adoption of AI in critical sectors like agriculture depends on trust. By making the AI ``explainable,'' we aim to bridge the gap between complex algorithms and human users \cite{todros2022explainable}.
+    \item \textbf{Technological Accessibility:} Farmers in developing regions often use low-end smartphones. Developing a lightweight model ensures that advanced AI diagnosis can run smoothly on these devices without needing expensive hardware or cloud connectivity. % \cite{sandler2018mobilenetv2, howard2017mobilenets}
+    \item \textbf{Food Security:} By enabling early and accurate detection of diseases, crop wastage can be significantly reduced, contributing to better food security and economic stability for farmers. % \cite{fao2017future, savary2019global}
+    \item \textbf{Trustworthy AI:} Adoption of AI in critical sectors like agriculture depends on trust. By making the AI ``explainable,'' we aim to bridge the gap between complex algorithms and human users. % \cite{ryo2022explainable}
 \end{itemize}
 
 \subsection{Significance of the Research}
@@ -56,15 +56,32 @@ The key contributions of this thesis are summarized as follows:
     \item \textbf{LLM-Based Advisory Module:} We connected the CNN output to the Google Gemini API with a safety-aware prompt, so that the system gives disease information, management steps and a warning when the confidence is low.
 \end{itemize}
 
+\subsection{Complex Engineering Analysis}
+This subsection evaluates the proposed potato leaf disease detection framework in terms of complex engineering problem-solving and systematic engineering activities.
+
+\subsubsection{Complex Engineering Problems}
+This work addresses interconnected engineering challenges in automated potato leaf disease detection. The dataset contains 3,076 field images belonging to seven classes, including Bacteria, Fungi, Healthy, Nematode, Pest, Phytopthora, and Virus. The images were collected in uncontrolled environments and contain complex backgrounds, varying illumination, shadows, and different leaf orientations. These variations make disease classification more challenging than laboratory-based image recognition. Furthermore, the dataset exhibits class imbalance, requiring careful data splitting and preprocessing to maintain a representative distribution across training, validation, and test sets.
+
+Another major challenge involves developing and comparing deep learning architectures with different computational requirements. The proposed Custom CNN is designed to reduce model complexity, while ResNet50 and MobileNetV2 provide comparative benchmarks. Limited computational resources and unavailable pretrained weights created additional difficulties during model training. The experiments were conducted using CPU-based computation, which increased training time and restricted the number of training epochs. Balancing model performance, computational efficiency, and model size therefore became a significant engineering challenge.
+
+This work also addresses the black-box nature of deep learning models. A classification result alone does not explain which image regions influenced the prediction. Grad-CAM was incorporated to visualize important regions of the leaf images. In addition, integrating a Large Language Model introduces challenges related to API communication, prediction-context handling, reliability of generated advice, and responsible agricultural recommendations.
+
+\subsubsection{Complex Engineering Activities}
+The engineering activities involved developing a complete image-based disease detection pipeline. The dataset was organized into seven classes and divided into training, validation, and test sets using stratified sampling with an 80:10:10 ratio. Images were resized to $224 \times 224$ pixels, normalized, and augmented using rotation, shifting, zooming, and horizontal flipping to improve model generalization. The preprocessing pipeline was implemented using Python, TensorFlow/Keras, OpenCV, and related image-processing libraries.
+
+Three deep learning architectures were implemented and evaluated: the proposed Custom Lightweight CNN, ResNet50, and MobileNetV2. The Custom CNN incorporated convolutional layers, Batch Normalization, Swish activation, Max Pooling, Dropout, and Global Average Pooling. Model training and evaluation were conducted using a consistent dataset split and evaluation framework. Performance was analyzed using accuracy, loss, precision, recall, F1-score, confusion matrices, ROC-AUC, inference time, and model size.
+
+Further engineering activities included implementing Grad-CAM for visual explanation of model predictions and integrating Google Gemini through its API to generate disease explanations, management recommendations, and prevention guidance from the predicted class and confidence score. API credentials were managed securely through environment secrets. Finally, the prediction, explainability, and advisory components were integrated into a web-based application using FastAPI and React, providing image upload, camera-based image capture, disease prediction, advisory generation, and downloadable reports. These activities demonstrate the systematic application of software engineering, machine learning, image processing, and integration techniques to develop a complete agricultural disease detection system.
+
 \subsection{Thesis Organization}
 The remainder of this thesis is organized as follows:
 \begin{itemize}
     \item \textbf{Chapter 2: Background Study} discusses existing works in plant disease detection, highlighting the evolution from traditional ML to modern DL and XAI approaches.
-    \item \textbf{Chapter 3: Research Methodology} details the dataset, data preprocessing, the proposed Custom CNN architecture, the ResNet50 and MobileNetV2 configurations, Grad-CAM and the LLM advisory module.
+    \item \textbf{Chapter 3: Research Methodology} details the proposed framework, dataset analysis and project requirements, the Custom CNN, ResNet50, and MobileNetV2 model analyses, Grad-CAM explainability, and the LLM advisory module.
     \item \textbf{Chapter 4: Implementation and Result Analysis} presents the experimental results, including learning curves, confusion matrices, comparative analysis, XAI visualizations and the LLM advisory output.
-    \item \textbf{Chapter 5: Standards, Constraints, and Milestones} outlines the engineering standards adhered to, analyzes the societal and environmental impacts, discusses ethical considerations, and highlights the implementation challenges faced during the research.
+    \item \textbf{Chapter 5: Standards, Constraints, and Milestones} outlines the sustainability and engineering standards adhered to, analyzes the societal and environmental impacts, discusses ethical considerations, and highlights the implementation challenges and constraints faced during the research.
     \item \textbf{Chapter 6: Conclusion} summarizes the key findings, concludes the study, and outlines limitations along with potential future directions for this research.
 \end{itemize}
 
 \subsection*{Summary}
-This chapter gave an overview of the challenges in plant disease detection and the potential of Deep Learning to address them. The problem statement highlighted the need for lightweight, interpretable and farmer-friendly models. The research objectives, motivations and contributions were outlined to set the stage for the technical chapters. The next chapter reviews the relevant literature to establish the context for the proposed methodology.
+This chapter gave an overview of the challenges in plant disease detection and the potential of Deep Learning to address them. The problem statement highlighted the need for lightweight, interpretable and farmer-friendly models. The research objectives, motivations, contributions, and Complex Engineering Analysis were outlined to set the stage for the technical chapters. The next chapter reviews the relevant literature to establish the context for the proposed methodology.
