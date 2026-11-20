@@ -1,0 +1,112 @@
+\begin{center}
+    \section*{\fontsize{20}{20}\selectfont Chapter 5}
+\end{center}
+\vspace{10mm}
+
+\section{Standards, Constraints, and Milestones}
+
+Beyond diagnostic accuracy and model compactness, deploying an Artificial Intelligence system for agricultural decision support requires rigorous adherence to engineering standards, environmental sustainability goals, ethical safeguards, and transparent acknowledgment of project constraints. This chapter details our alignment with United Nations Sustainable Development Goals (SDGs) and software engineering standards, evaluates societal and environmental impacts, examines ethical governance, summarizes technical challenges and categorized constraints, and documents the 26-week execution timeline.
+
+\subsection{Sustainability Standards}
+To anchor the engineering work in global sustainability priorities and reproducible machine learning practices, the project aligns with five United Nations Sustainable Development Goals (SDGs) alongside formal software and evaluation standards.
+
+\subsubsection*{Alignment with UN Sustainable Development Goals (SDGs)}
+Table~\ref{tab:sdg_alignment} maps the technical capabilities of our compact 8.64~MB diagnostic model and bilingual farmer web application directly to five UN SDGs.
+
+\begin{table}[htbp]
+\caption{Alignment of the Proposed System with UN Sustainable Development Goals}
+\label{tab:sdg_alignment}
+\begin{center}
+\begin{tabularx}{\textwidth}{| p{2.3cm} | p{3.6cm} | X |}
+\hline
+\textbf{UN SDG} & \textbf{Goal Title} & \textbf{Project Alignment and Mechanism} \\
+\hline
+SDG 2 & Zero Hunger & Accurate early detection (93.51\% single-pass / 93.94\% TTA) of potato late blight (\textit{Phytophthora}), fungal, bacterial, and viral diseases enables timely field intervention to protect smallholder harvests. \\
+\hline
+SDG 9 & Industry, Innovation, and Infrastructure & Delivers resilient, inclusive agricultural AI by outperforming a 118.55~MB multi-backbone ensemble with an 8.64~MB model served through a lightweight open-source FastAPI/React web platform. \\
+\hline
+SDG 12 & Responsible Consumption and Production & Targeted pathogen identification paired with dosage-free Gemini advisory guidance discourages blind blanket pesticide spraying, reducing chemical waste and farm input costs. \\
+\hline
+SDG 13 & Climate Action & Compact 8.64~MB inference minimizes server energy and carbon overhead compared to 100+~MB ensembles while helping farmers adapt quickly to climate-driven disease outbreaks. \\
+\hline
+SDG 15 & Life on Land & Reducing indiscriminate fungicide and bactericide runoff protects soil microbial biodiversity, pollinators, and freshwater ecosystems adjacent to potato fields. \\
+\hline
+\end{tabularx}
+\end{center}
+\end{table}
+
+\subsubsection*{Engineering and Software Standards}
+\begin{itemize}
+    \item \textbf{Software Coding Standards (PEP~8):} All notebook training pipelines and FastAPI backend modules adhere to PEP~8 conventions, modular function boundaries, and explicit configuration contracts.
+    \item \textbf{Reproducibility and Export Verification Standards:} Fixed seeds (\texttt{42}), deterministic perceptual-hash split assertions, automated post-training sanity gates, and export probability-parity verification ($\Delta_{\max} = 0.00 \times 10^{0}$) ensure every published number is auditable and reproducible.
+    \item \textbf{Data Licensing and Evaluation Standards:} Public field imagery is used solely for academic research under its Kaggle repository license \cite{shabrina2024novel}, and all five models are evaluated with standardized multi-class metrics on an identical held-out leak-aware test set \cite{grandini2020metrics}.
+\end{itemize}
+
+\subsection{Impacts on Society}
+Deploying an accurate, lightweight, bilingual diagnostic web application carries tangible benefits for farming communities:
+\begin{itemize}
+    \item \textbf{Democratized Agricultural Diagnostics:} Smallholder farmers who lack rapid access to plant pathologists can capture a leaf photograph on a basic smartphone browser and receive an immediate preliminary diagnosis, Grad-CAM visual check, and plain-language Bengali or English guidance.
+    \item \textbf{Economic Protection for Rural Households:} Catching aggressive diseases such as \textit{Phytophthora} late blight (0.94 recall) or \textit{Bacterial Disease} (1.00 recall) early prevents cascading yield loss and reduces wasted spending on ineffective treatments.
+    \item \textbf{Environmental Stewardship:} Distinguishing viral infections (where fungicides are ineffective) from fungal or bacterial diseases directly reduces unnecessary chemical spraying and ecological runoff.
+\end{itemize}
+
+\subsection{Ethics}
+Responsible AI deployment in agriculture requires proactive mitigation of bias, misdiagnosis risk, and privacy concerns:
+\begin{itemize}
+    \item \textbf{Class-Imbalance Bias Mitigation:} Because \textit{Fungi} outnumbers \textit{Healthy} by $3.66:1$, training without mitigation risks suppressing minority recall. Capped inverse-frequency class weights and macro-F1 checkpoint selection ensured 100\% recall on \textit{Healthy} and 94\% recall on \textit{Phytophthora}, while remaining trade-offs (e.g., 0.79 \textit{Healthy} precision) are reported transparently.
+    \item \textbf{Transparent Framing of Misdiagnosis Risk:} Even at 93.51--93.94\% accuracy, an erroneous prediction could lead to suboptimal field action. Every web screen displays a prominent disclaimer (\textit{``AI-based preliminary classification---not a definitive diagnosis''}), surfaces raw softmax confidence alongside Grad-CAM overlays, and prompts farmers to verify uncertain cases with local agricultural extension officers.
+    \item \textbf{Privacy and Safe LLM Governance:} No personal farmer data or raw leaf photographs are transmitted to external LLM servers; only the predicted disease class and confidence score are sent to Google Gemini via environment-managed secrets, under strict prompt guardrails forbidding invented chemical brand names or dosages.
+\end{itemize}
+
+\subsection{Challenges}
+Key technical challenges encountered and resolved during development included:
+\begin{itemize}
+    \item \textbf{Preventing Split Leakage in Field Imagery:} Burst photographs of identical leaves initially risked inflating validation scores; implementing 64-bit perceptual difference hashing ($\text{dHash} \le 10$) with union-find clustering and \texttt{StratifiedGroupKFold} eliminated cross-split leakage across all five notebooks.
+    \item \textbf{Eliminating Fine-Tuning Instability:} Unfreezing MobileNetV2 Batch Normalization layers in \texttt{02} v5 triggered a sharp validation-loss spike ($0.83 \rightarrow 2.63$). Restoring Stage-1 best head weights, freezing all BN layers across the top 54 layers, and adopting AdamW with gradient clipping resolved this completely and drove a $+2.17$ percentage-point accuracy gain.
+    \item \textbf{Portable Serialization Across Multi-Backbone Ensembles and Dual GPUs:} Custom Keras \texttt{Lambda} preprocessing layers and in-strategy evaluation initially caused serialization friction and probability discrepancies; replacing \texttt{Lambda} layers with native \texttt{Rescaling} and frozen $1 \times 1$ \texttt{Conv2D} layers and reloading checkpoints outside \texttt{MirroredStrategy} achieved $0.00 \times 10^{0}$ export parity across all five architectures.
+    \item \textbf{Distinguishing Overlapping Foliar Lesions:} Visual similarity between \textit{Fungal Disease}, \textit{Phytophthora}, and early-stage lesions against cluttered soil backgrounds remained the primary error source, motivating photometric brightness augmentation and 4-view TTA.
+\end{itemize}
+
+\subsection{Constraints}
+The engineering design operated within four explicitly categorized boundary conditions:
+\begin{itemize}
+    \item \textbf{Design Constraints:} Strict enforcement of the 5-class contract and $224 \times 224 \times 3$ $[0, 1]$ serving interface, target model footprint under 10~MB (achieved: 8.64~MB with zero custom layers), mandatory compatibility with Grad-CAM spatial extraction (\texttt{Conv\_1}), and non-diagnostic, dosage-free Gemini prompt rules.
+    \item \textbf{Component Constraints:} The dataset comprises 2,321 uncontrolled field images (leaving 231 test images per split), restricting deep training from scratch and requiring ImageNet transfer learning. In addition, the interactive Gemini advisory feature requires active internet connectivity and external API availability, which may be intermittent in remote rural areas.
+    \item \textbf{Budget and Resource Constraints:} Conducted as an unfunded academic capstone project, all experiments relied on free-tier Kaggle dual-T4 GPU quotas, open-source Python/React tooling, and low-cost \texttt{gemini-3.1-flash-lite} API calls rather than paid multi-GPU clusters or proprietary field data collection campaigns.
+    \item \textbf{Operational and Regulatory Constraints:} Automated crop-disease recommendations carry agronomic liability if treated as clinical prescriptions; consequently, the web application is scoped strictly as a preliminary decision-support and educational tool that defers chemical application decisions to certified product labels and local agricultural officers.
+\end{itemize}
+
+\subsection{Timeline and Gantt Chart}
+The project was executed over a 26-week schedule divided into Phase~I (Planning, Data Engineering, and Model Design, Weeks~1--13) and Phase~II (Multi-Model Benchmarking, Optimization, Web Deployment, and Documentation, Weeks~14--26), as summarized in Figures~\ref{fig:gantt1} and~\ref{fig:gantt2}.
+
+\subsubsection{Phase I: Planning and System Design (Weeks 1--13)}
+\begin{itemize}
+    \item \textbf{Weeks 1--2:} Literature review covering agricultural computer vision, lightweight CNNs, transfer learning, XAI, and LLM advisory systems.
+    \item \textbf{Weeks 3--5:} Dataset curation, exploratory audit, and implementation of leak-aware perceptual-hash ($\text{dHash} \le 10$) \texttt{StratifiedGroupKFold} splitting.
+    \item \textbf{Weeks 6--10:} Architectural design of the compact MobileNetV2 pipeline, preprocessing contract, and training augmentation workflow.
+    \item \textbf{Weeks 11--13:} Design and standardization of the four comparative benchmark pipelines (MultiNet-V3, Benchmark MobileNetV2, InceptionV3, NASNetMobile).
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\textwidth]{image/docx_image26.jpeg}
+\caption{Gantt Chart I -- Timeline for Planning, Data Preparation, and Model Design (Weeks 1--13).}
+\label{fig:gantt1}
+\end{figure}
+
+\subsubsection{Phase II: Implementation, Benchmarking, Deployment, and Documentation (Weeks 14--26)}
+\begin{itemize}
+    \item \textbf{Weeks 14--17:} Dual-GPU training of all five models on Kaggle, export-integrity verification, and v5-to-v6 fine-tuning optimization (frozen BN, AdamW, 4-view TTA).
+    \item \textbf{Weeks 18--21:} Comparative Pareto accuracy-to-size analysis, Grad-CAM verification across architectures, Gemini safety-prompt integration, and FastAPI/React farmer web application deployment.
+    \item \textbf{Weeks 22--26:} Full compilation of experimental tables, figures, thesis chapters, and final capstone defense preparation.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\textwidth]{image/docx_image27.png}
+\caption{Gantt Chart II -- Timeline for Implementation, Benchmarking, Web Deployment, and Documentation (Weeks 14--26).}
+\label{fig:gantt2}
+\end{figure}
+
+\subsection*{Summary}
+This chapter examined the sustainability, ethical, and engineering governance dimensions of the project, mapping our 8.64~MB model and farmer web application to UN SDGs 2, 9, 12, 13, and 15, documenting PEP~8 and export-verification standards, detailing key technical challenges and four categories of project constraints, and presenting the 26-week execution schedule. Chapter~6 concludes the thesis and outlines concrete future directions.

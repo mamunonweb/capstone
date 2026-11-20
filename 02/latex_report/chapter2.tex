@@ -1,0 +1,88 @@
+\begin{center}
+    \section*{\fontsize{20}{20}\selectfont Chapter 2}
+\end{center}
+\vspace{10mm}
+\section{Background Study}
+
+This chapter reviews the scientific and engineering foundations of automated plant disease detection. It traces the progression from manual visual scouting and classical hand-crafted Machine Learning (ML) pipelines to modern Deep Learning (DL) transfer-learning architectures, lightweight mobile networks, multi-backbone ensembles, fine-tuning regularization, Explainable Artificial Intelligence (XAI), and Large Language Model (LLM) advisory integration. The chapter concludes with a structured literature synthesis and problem analysis identifying the specific gaps targeted by this study.
+
+\subsection{Literature Review}
+
+\subsubsection{Plant Pathology: Agricultural Context and Diagnostic Challenges}
+Plant diseases pose a persistent threat to global food supply chains and farmer livelihoods \cite{fao2017future}. Estimates by the Food and Agriculture Organization (FAO) attribute 20--40\% of annual global crop yield losses to pests and pathogens \cite{strange2005plant}, with fungal, oomycete, bacterial, and viral outbreaks frequently causing severe regional shortages \cite{savary2019global}. In potato cultivation, distinguishing visually overlapping foliar symptoms---such as \textit{Phytophthora} late blight versus other fungal leaf spots or bacterial lesions---is essential because ineffective or delayed treatment allows rapid field-wide spread.
+
+Traditional diagnosis relies on manual inspection by agronomists or laboratory culturing \cite{barbedo2018factors}. Manual inspection is subjective, time-consuming, and constrained by the shortage of trained extension officers in rural regions, whereas laboratory diagnostics require specialized equipment and turnaround times incompatible with urgent field intervention \cite{fao2017future}. Precision agriculture research demonstrates that rapid, accurate screening reduces both crop loss and excessive chemical pesticide application \cite{savary2019global}, motivating accessible AI-assisted diagnostic tools \cite{lecun2015deep}.
+
+\subsubsection{Traditional Machine Learning Approaches}
+Prior to modern deep CNNs, automated leaf diagnosis combined explicit image segmentation with hand-crafted feature extraction and shallow classifiers. Common descriptors included Color Histograms, Gray-Level Co-occurrence Matrix (GLCM) texture features, and Scale-Invariant Feature Transform (SIFT) keypoints \cite{pujari2016image}. Arivazhagan et al.\ extracted color and texture features with Support Vector Machines (SVM) to detect unhealthy leaf regions \cite{arivazhagan2013detection}, while Al-Hiary et al.\ paired K-Means clustering segmentation with shallow neural networks \cite{alhiary2011fast}. Although effective on controlled, uniform backgrounds, these hand-crafted pipelines proved fragile under natural outdoor lighting, shadows, soil clutter, and varying camera angles \cite{ngugi2021recent}.
+
+\subsubsection{Deep Learning in Agriculture: From Laboratory to Field Imagery}
+Deep Convolutional Neural Networks superseded manual descriptors by learning multi-scale spatial feature hierarchies directly from raw RGB images \cite{lecun2015deep, mohanty2016using}. The release of the open-access PlantVillage repository catalyzed early benchmarks \cite{hughes2015open}. Mohanty et al.\ trained AlexNet and GoogLeNet on PlantVillage and achieved over 99\% accuracy on laboratory splits, but documented a dramatic performance drop when evaluating the same models on field images with complex backgrounds \cite{mohanty2016using}. Sladojevic et al.\ validated deep CNN recognition across 13 plant disease categories \cite{sladojevic2016deep}, and Ferentinos achieved 99.53\% accuracy on PlantVillage with VGG16 while noting that its $\sim 138$ million parameters impose prohibitive computational demands for mobile deployment \cite{ferentinos2018deep}.
+
+To bridge the laboratory-to-field domain gap, Shabrina et al.\ introduced a potato leaf disease dataset collected in uncontrolled field environments containing soil, plastic mulch, hands, natural shadows, and overlapping foliage \cite{shabrina2024novel}. Training and evaluating on uncontrolled field photographs---while preventing near-duplicate burst images from leaking across dataset splits---provides a far more realistic test of real-world agricultural readiness than plain-background studio benchmarks.
+
+\subsubsection{Transfer Learning, Lightweight Backbones, and Ensembles}
+Because agricultural datasets typically contain a few thousand labeled images, ImageNet transfer learning is the standard foundation for high-accuracy plant pathology \cite{pan2010survey, too2019comparative}. Five architectural families are directly relevant to our comparative benchmark:
+\begin{itemize}
+    \item \textbf{MobileNetV2 (Compact Inverted Residuals):} Introduced by Sandler et al.\ \cite{sandler2018mobilenetv2}, building on depthwise separable convolutions \cite{howard2017mobilenets}, MobileNetV2 uses inverted residual blocks with linear bottlenecks to keep parameter counts near 2.26~million ($\sim 8.6$~MB). Depthwise separable architectures have demonstrated strong potential for resource-constrained crop diagnostics \cite{kc2019depthwise}, though naive training configurations can underperform heavier backbones on subtle field lesions \cite{too2019comparative}.
+    \item \textbf{ResNet50 (Residual Skip Connections):} He et al.\ introduced identity shortcut connections enabling deep feature hierarchies without vanishing gradients \cite{he2016deep}. ResNet50 ($\sim 23.6$M parameters) serves as a reliable high-capacity feature extractor in crop disease recognition \cite{brahimi2017deep} and forms the heaviest branch of our MultiNet-V3 ensemble.
+    \item \textbf{EfficientNetB0 (Compound Scaling):} Tan and Le proposed compound scaling of network depth, width, and resolution alongside squeeze-and-excitation blocks \cite{tan2019efficientnet}, yielding compact, highly expressive representations ($\sim 4.05$M parameters) well suited to multi-backbone feature fusion.
+    \item \textbf{InceptionV3 (Multi-Scale Factorized Convolutions):} Szegedy et al.\ refined parallel multi-scale filter banks with factorized convolutions and label smoothing at $299 \times 299$ input resolution ($\sim 22.3$M parameters) \cite{szegedy2016rethinking}, capturing both fine necrotic spots and broader foliar chlorosis.
+    \item \textbf{NASNetMobile (Neural Architecture Search):} Zoph et al.\ used reinforcement learning to discover transferable normal and reduction convolutional cells ($\sim 4.54$M parameters) \cite{zoph2018learning}. While theoretically compact, its deeply branched cell graph can be sensitive to fine-tuning schedules on small domain datasets.
+    \item \textbf{Multi-Backbone Ensembles (MultiNet-V3):} Concatenating spatial feature maps from complementary pretrained backbones (EfficientNetB0 + MobileNetV2 + ResNet50, $\sim 31.1$M parameters, 118.55~MB) increases representational diversity at the cost of a $13.7\times$ larger memory footprint, making it an ideal high-capacity ceiling against which to measure our compact single-backbone design.
+\end{itemize}
+
+\subsubsection{Fine-Tuning Stability, Data Augmentation, and Regularization}
+Achieving peak transfer-learning performance on small, imbalanced agricultural datasets depends as much on optimization discipline as on backbone selection. Geometric and photometric data augmentation---including rotation, flipping, zooming, shear, and brightness jitter---expands effective sample diversity and improves field robustness \cite{shorten2019survey}. Dropout \cite{srivastava2014dropout}, label smoothing \cite{szegedy2016rethinking}, Swish activations \cite{ramachandran2017swish}, and decoupled weight decay (\texttt{AdamW}) \cite{loshchilov2019decoupled} curb overfitting during deep fine-tuning. Critically, Batch Normalization (BN) layers \cite{ioffe2015batch} must remain frozen during fine-tuning on small mini-batches; otherwise, shifting running statistics and BN scale parameters induce severe validation-loss spikes immediately after unfreezing the backbone. Finally, Test-Time Augmentation (TTA) averages predictions across flipped views of an input leaf at inference time, frequently improving macro-F1 without adding a single model parameter.
+
+\subsubsection{Explainable AI (XAI) and Large Language Models in Agriculture}
+High classification accuracy alone does not guarantee that a CNN focuses on true disease lesions rather than background soil or leaf borders \cite{amara2017deep}. Selvaraju et al.\ introduced Gradient-weighted Class Activation Mapping (Grad-CAM), which projects class-specific gradients onto the final spatial convolutional feature map to produce interpretable localization heatmaps \cite{selvaraju2017grad}. Ryo highlighted the essential role of post-hoc XAI in earning farmer and agronomist trust in agricultural AI \cite{ryo2022explainable}.
+
+To close the final mile from diagnosis to action, modern Large Language Models (LLMs) such as Google Gemini can convert structured classifier outputs into accessible, multilingual agronomic guidance \cite{google2026gemini}. Because LLMs can hallucinate if unconstrained, responsible agricultural deployment requires keeping the CNN strictly in charge of visual classification while constraining the LLM via explicit safety rules that prohibit inventing chemical dosages and emphasize consulting local agricultural extension services.
+
+Table~\ref{tab:lit_summary} summarizes the reviewed literature and maps each study's limitations to the design decisions of this thesis.
+
+\begin{table}[htbp]
+\caption{Summary of Key Literature in Plant Disease Detection}
+\label{tab:lit_summary}
+\begin{center}
+\scriptsize
+\begin{tabularx}{\textwidth}{| p{2.2cm} | p{2.3cm} | p{2.7cm} | p{2.2cm} | X |}
+\hline
+\textbf{Study} & \textbf{Dataset / Setting} & \textbf{Approach / Models} & \textbf{Reported Outcome} & \textbf{Key Gap Addressed in This Work} \\
+\hline
+Al-Hiary et al.\ (2011) \cite{alhiary2011fast} & Controlled leaf images & K-Means + Neural Networks & Baseline segmentation & Hand-crafted descriptors fail under complex field lighting and backgrounds. \\
+\hline
+Arivazhagan et al.\ (2013) \cite{arivazhagan2013detection} & Leaf texture samples & Color/GLCM + SVM & Accurate on small lab sets & Manual feature extraction does not generalize to cluttered field scenes. \\
+\hline
+Mohanty et al.\ (2016) \cite{mohanty2016using} & PlantVillage (plain lab bg) & AlexNet, GoogLeNet & $>99\%$ lab; drops on field & Severe lab-to-field domain drop; no compact edge focus or XAI. \\
+\hline
+Ferentinos (2018) \cite{ferentinos2018deep} & PlantVillage (58 classes) & VGG16, AlexNet, GoogLeNet & 99.53\% (VGG16) & $\sim 138$M parameters; impractical for low-cost mobile/web deployment. \\
+\hline
+Sandler et al.\ (2018) \cite{sandler2018mobilenetv2} & ImageNet & MobileNetV2 & Strong mobile Pareto baseline & Requires domain-specific fine-tuning and BN freezing for field leaf diseases. \\
+\hline
+Too et al.\ (2019) \cite{too2019comparative} & PlantVillage (fine-tuning) & VGG, ResNet, DenseNet, Inception & DenseNet-121 highest acc & Lab data only; lacks size-normalized Pareto analysis, XAI, and farmer app. \\
+\hline
+Tan \& Le (2019) \cite{tan2019efficientnet} & ImageNet & EfficientNet family & Compound-scaled accuracy & Forms a core branch of our MultiNet-V3 high-capacity benchmark. \\
+\hline
+Ryo (2022) \cite{ryo2022explainable} & Agricultural AI review & Post-hoc XAI \& interpretable ML & Frameworks for trust & Emphasizes lesion-grounded XAI validation for real farmer adoption. \\
+\hline
+Shabrina et al.\ (2024) \cite{shabrina2024novel} & Uncontrolled Potato Field & Field benchmark dataset & Realistic cluttered benchmark & No leak-aware duplicate grouping, compact Pareto study, XAI, or LLM web app. \\
+\hline
+\end{tabularx}
+\end{center}
+\end{table}
+
+\subsection{Problem Analysis}
+Synthesizing the literature reveals four interconnected gaps that directly shape our methodology:
+\begin{itemize}
+    \item \textbf{Unverified Accuracy-to-Size Efficiency on Field Data:} Heavy CNNs and multi-backbone ensembles dominate accuracy tables, yet few studies rigorously test whether a carefully fine-tuned $<10$~MB model can match or surpass a $>100$~MB ensemble on the exact same leak-aware uncontrolled field split.
+    \item \textbf{Near-Duplicate Leakage in Random Splits:} Standard random splitting allows burst photographs of identical leaves to appear in both training and test sets, masking generalization failures unless perceptual-hash grouping is enforced beforehand.
+    \item \textbf{Fine-Tuning Instability in Lightweight Backbones:} Unfreezing Batch Normalization layers or attaching over-parameterized classification heads to MobileNetV2 on moderate datasets causes validation shock or premature stagnation, creating a false impression that lightweight models cannot achieve $>93\%$ field accuracy.
+    \item \textbf{Disconnected Prototypes Without Farmer Usability:} Most research stops at a notebook confusion matrix without verifying Grad-CAM localization, guarding against export serialization drift, or delivering a live bilingual web application with camera capture, batch triage, and safe LLM advice.
+\end{itemize}
+
+\noindent \textbf{Conclusion of Analysis:} To address these gaps simultaneously, this thesis combines (1) a leak-aware 5-class field benchmark ($\text{dHash} \le 10$), (2) a zero-size-bloat fine-tuned 8.64~MB MobileNetV2 architecture evaluated head-to-head against four diverse benchmark models, (3) verified Grad-CAM visual explainability, and (4) a deployed bilingual FastAPI/React farmer web application powered by safety-constrained Google Gemini guidance.
+
+\subsection*{Summary}
+This chapter traced the evolution of plant disease detection from hand-crafted descriptors to transfer-learned CNNs, lightweight mobile backbones, multi-backbone ensembles, Grad-CAM explainability, and agricultural LLMs. The problem analysis identified four key gaps---accuracy-to-size trade-offs, split leakage, fine-tuning instability, and lack of farmer-ready deployment---that directly motivate the methodology presented in Chapter~3.

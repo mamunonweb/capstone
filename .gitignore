@@ -1,7 +1,8 @@
 /archive
 
-# Generated PDF
-/latex_report/main.pdf
+# Generated PDFs
+/01/latex_report/main.pdf
+/02/latex_report/main.pdf
 
 # LaTeX build artifacts
 *.aux

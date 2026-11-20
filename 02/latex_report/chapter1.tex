@@ -1,0 +1,79 @@
+\begin{center}
+    \section*{\fontsize{20}{20}\selectfont Chapter 1}
+\end{center}
+\vspace{10mm}
+\section{Introduction}
+
+Agriculture underpins economic stability and food security for billions of people worldwide, yet foliar crop diseases continue to inflict severe yield losses across smallholder and commercial farms alike \cite{fao2017future}. According to the Food and Agriculture Organization (FAO), plant pests and pathogens account for an estimated 20--40\% of global crop losses every year \cite{strange2005plant}, imposing an acute economic burden on staple food production \cite{savary2019global}. Potato (\textit{Solanum tuberosum}) is particularly vulnerable to rapidly spreading bacterial, fungal, oomycete (late blight, \textit{Phytophthora infestans}), and viral infections that can devastate an entire harvest if left undiagnosed.
+
+Conventional disease diagnosis depends on visual scouting by agricultural specialists or laboratory assays, both of which are costly, slow, and largely inaccessible in remote rural areas \cite{barbedo2018factors}. Deep Learning (DL) and Convolutional Neural Networks (CNNs) have transformed automated plant pathology by learning discriminative visual representations directly from leaf photographs \cite{lecun2015deep}. However, translating laboratory CNN prototypes into practical tools that farmers can genuinely rely on requires solving three interconnected engineering problems simultaneously: achieving high diagnostic accuracy on cluttered uncontrolled field imagery, keeping the model compact and computationally efficient enough for economical web and mobile deployment, and delivering transparent visual explanations alongside clear, safe agricultural guidance.
+
+\subsection{Problem Statement}
+Despite rapid progress in computer-vision-based plant disease recognition, several critical barriers still limit real-world adoption by farmers:
+\begin{itemize}
+    \item \textbf{Model Size vs.\ Field Accuracy Trade-off:} Heavyweight single architectures (such as ResNet50 and InceptionV3) and multi-backbone ensembles (such as MultiNet-V3) demand 85--120~MB of parameter storage and substantial inference compute, making low-cost cloud hosting or mobile edge deployment expensive \cite{sandler2018mobilenetv2, ferentinos2018deep}. Conversely, off-the-shelf lightweight models often underperform on cluttered field images unless carefully adapted and regularized \cite{kc2019depthwise, too2019comparative}.
+    \item \textbf{Evaluation Leakage and Uncontrolled Field Complexity:} Many published benchmarks rely on plain-background laboratory images (such as PlantVillage) or random image splits that allow near-duplicate burst photos of the same leaf to leak across training and test sets, artificially inflating accuracy \cite{mohanty2016using, shabrina2024novel}.
+    \item \textbf{Lack of Transparency and Actionable Guidance (The Black-Box Gap):} A bare disease label without visual justification fails to earn farmer trust \cite{ryo2022explainable}, while raw softmax probabilities do not tell a smallholder what symptoms to verify or what safe management and prevention measures to take next.
+\end{itemize}
+This thesis resolves these challenges by engineering an \textbf{accurate, small, and efficient} fine-tuned MobileNetV2 model (2.26~million parameters, 8.64~MB), rigorously benchmarking it against four competing heavyweight, lightweight, and ensemble architectures under an identical leak-aware evaluation contract, verifying lesion-grounded decisions via Gradient-weighted Class Activation Mapping (Grad-CAM), and deploying the complete system inside a bilingual (English and Bengali) FastAPI/React web application with Google Gemini advisory support for farmers.
+
+\subsection{Problem Background}
+Early automated plant disease detection systems combined classical image-processing descriptors---such as Color Histograms, Gray-Level Co-occurrence Matrix (GLCM) textures, and Scale-Invariant Feature Transform (SIFT) keypoints---with traditional classifiers including Support Vector Machines (SVM) and K-Nearest Neighbors (KNN) \cite{alhiary2011fast, pujari2016image, arivazhagan2013detection}. Although workable under uniform studio lighting, hand-crafted features degrade sharply under real field shadows, soil clutter, and overlapping foliage \cite{ngugi2021recent}.
+
+The shift toward Deep Learning eliminated manual feature engineering \cite{mohanty2016using, ferentinos2018deep}. Transfer learning from ImageNet-pretrained backbones---including ResNet \cite{he2016deep}, InceptionV3 \cite{szegedy2016rethinking}, EfficientNet \cite{tan2019efficientnet}, NASNetMobile \cite{zoph2018learning}, and MobileNetV2 \cite{sandler2018mobilenetv2}---enabled strong accuracy even on moderate agricultural datasets \cite{pan2010survey, too2019comparative}. Yet accuracy-only studies frequently overlook parameter efficiency, allow fine-tuning instability when Batch Normalization statistics shift on small mini-batches, and omit both post-hoc visual explainability \cite{selvaraju2017grad, amara2017deep} and an accessible farmer-facing software interface. This research bridges all of these gaps in a unified, reproducible engineering pipeline.
+
+\subsection{Research Objectives}
+The overarching goal of this thesis is to build an accurate, compact, explainable, and farmer-ready potato leaf disease diagnostic system. The specific objectives are:
+\begin{itemize}
+    \item To establish a reproducible, leak-aware 5-class uncontrolled field benchmark (Bacteria, Fungi, Healthy, Phytopthora, and Virus; 2,321 images) using perceptual difference hashing ($\text{dHash} \le 10$) and \texttt{StratifiedGroupKFold} splitting so near-duplicate leaf photographs never straddle training, validation, and test splits.
+    \item To optimize a compact, production-grade \textbf{MobileNetV2} transfer-learning model (8.64~MB, 2.26M parameters) using two-stage AdamW fine-tuning with frozen Batch Normalization, capped class weights, leaf-realistic augmentation, and zero-parameter 4-view Test-Time Augmentation (TTA).
+    \item To conduct a controlled, head-to-head benchmark comparison against four alternative architectures---MultiNet-V3 Ensemble (EfficientNetB0 + MobileNetV2 + ResNet50), Benchmark MobileNetV2, InceptionV3, and NASNetMobile---evaluating accuracy, macro-F1, per-class precision/recall, test loss, parameter count, weight size, and Pareto accuracy-to-size efficiency.
+    \item To validate model trustworthiness via Grad-CAM visual heatmaps \cite{selvaraju2017grad} and deploy the verified model with a safety-constrained Google Gemini Large Language Model (LLM) advisory assistant inside a bilingual FastAPI/React web application tailored for farmers.
+\end{itemize}
+
+\subsection{Motivations}
+This work is driven by three practical agricultural imperatives:
+\begin{itemize}
+    \item \textbf{Small, Fast, and Affordable Deployment:} Keeping the diagnostic model under 9~MB allows rapid loading, low RAM consumption, fast CPU inference on modest cloud servers, and straightforward future conversion to offline smartphone runtimes (TensorFlow Lite) for rural farmers.
+    \item \textbf{Food Security and Reduced Chemical Waste:} Timely, accurate distinction among bacterial, fungal, viral, and \textit{Phytophthora} late-blight infections helps farmers intervene early and avoid indiscriminate blanket pesticide spraying \cite{fao2017future, savary2019global}.
+    \item \textbf{Human-Centered Trustworthy AI:} Pairing every diagnosis with a Grad-CAM lesion heatmap and bilingual (English/Bengali) plain-language advice bridges the gap between deep neural networks and real agricultural decision-making \cite{ryo2022explainable}.
+\end{itemize}
+
+\subsection{Significance of the Research}
+This study contributes practical value across both agricultural engineering and applied machine learning:
+\begin{itemize}
+    \item \textbf{For Farmers and Extension Workers:} It delivers a live, mobile-responsive web application supporting single-leaf camera capture, 12-image batch screening, downloadable PDF/CSV reports, Grad-CAM overlays, and interactive English/Bengali AI guidance.
+    \item \textbf{For Applied ML Research:} It demonstrates empirically that disciplined training engineering (leak-aware splitting, lightweight head design, Stage-1 weight restoration, frozen-BN AdamW fine-tuning, and photometric augmentation) enables an 8.64~MB single MobileNetV2 model to decisively outperform a 118.55~MB three-backbone ensemble on uncontrolled field imagery.
+    \item \textbf{Economic and Environmental Impact:} Accurate early triage curbs yield loss while minimizing unnecessary fungicide and bactericide expenditures \cite{strange2005plant}.
+\end{itemize}
+
+\subsection{Research Contributions}
+The main technical contributions of this thesis are:
+\begin{itemize}
+    \item \textbf{Pareto-Optimal Compact Classifier (8.64~MB):} Our optimized MobileNetV2 pipeline (\texttt{02} v6) achieves \textbf{93.51\%} single-pass test accuracy and \textbf{0.9272} macro-F1 (\textbf{93.94\%} accuracy / \textbf{0.9317} macro-F1 with 4-view TTA) using only 2,264,389 parameters (8.64~MB) and verified $0.00 \times 10^{0}$ export probability discrepancy.
+    \item \textbf{Controlled Five-Architecture GPU Benchmark and Ablation:} We evaluate five distinct pipelines on the exact same leak-aware 231-image test split---including MultiNet-V3 (118.55~MB, 90.91\%), Benchmark MobileNetV2 (9.87~MB, 86.15\%), InceptionV3 (85.18~MB, 84.42\%), and NASNetMobile (17.33~MB, 72.73\%)---and document a zero-parameter-cost v5-to-v6 ablation that eliminated fine-tuning shock and raised MobileNetV2 accuracy by $+2.17$ percentage points.
+    \item \textbf{Lesion-Grounded Grad-CAM Across Diverse Topologies:} We implement and verify Grad-CAM across single-backbone (\texttt{Conv\_1}, \texttt{conv2d\_93}, \texttt{normal\_\allowbreak conv\_\allowbreak 1\_\allowbreak 12}) and multi-backbone concatenated spatial feature maps (\texttt{ensemble\_\allowbreak spatial\_\allowbreak features}) \cite{selvaraju2017grad}.
+    \item \textbf{Deployed Bilingual Farmer Web Application:} We integrate the verified classifier, Grad-CAM visualizer, batch CSV/PDF exporter, and safety-guarded Google Gemini advisory assistant into a production-ready FastAPI and React web platform (\url{https://potato.mamunlab.com/}).
+\end{itemize}
+
+\subsection{Complex Engineering Analysis}
+This subsection evaluates the system in accordance with engineering accreditation criteria for Complex Engineering Problems (CEPs) and Complex Engineering Activities (CEAs).
+
+\subsubsection{Complex Engineering Problems}
+Automated potato leaf disease diagnosis in real agricultural environments presents tightly coupled technical challenges with no single off-the-shelf solution. First, the curated uncontrolled-field dataset contains 2,321 color photographs spanning five classes (Bacteria, Fungi, Healthy, Phytopthora, and Virus) captured against soil, plastic mulch, hands, shadows, and overlapping foliage, with a $3.66:1$ class skew (729 Fungi vs.\ 199 Healthy) and near-duplicate burst photographs that cause severe evaluation leakage under naive random splitting. Second, achieving both high fine-grained disease accuracy and compact deployment size creates conflicting design requirements: heavyweight ensembles such as MultiNet-V3 (31.08M parameters, 118.55~MB) capture strong disease features but are costly to serve, whereas compact architectures suffer validation-loss spikes (fine-tuning shock) and premature stagnation if Batch Normalization layers, head complexity, and learning-rate schedules are not carefully co-designed. Third, bridging opaque neural inference to real farmer decisions requires synchronized visual explainability (Grad-CAM) and strictly safety-constrained LLM advisory generation that avoids hallucinating chemical dosages or overstating diagnostic certainty.
+
+\subsubsection{Complex Engineering Activities}
+Solving these problems required coordinating data engineering, distributed GPU deep learning, model verification, explainability, and full-stack software deployment. All 2,321 images were audited, hashed via 64-bit perceptual difference hashing ($\text{dHash} \le 10$) into 2,283 unique groups using union-find clustering, and partitioned via \texttt{StratifiedGroupKFold} into strictly disjoint training (1,859), validation (231), and test (231) subsets. Five deep learning pipelines---including our optimized MobileNetV2 (\texttt{02}) and four comparative benchmarks (MultiNet-V3, Benchmark MobileNetV2, InceptionV3, and NASNetMobile)---were implemented in Python with TensorFlow/Keras and trained across dual NVIDIA Tesla T4 GPUs under \texttt{MirroredStrategy} with macro-F1 checkpointing, capped class weighting, and automated post-export integrity checks ensuring exact numerical parity between in-memory and reloaded \texttt{.keras} artifacts. In addition, native Keras preprocessing layers replaced unsafe custom lambda layers for portable serialization, Grad-CAM heatmaps were extracted from final spatial feature tensors, and the winning 8.64~MB model was integrated with Google Gemini into a deployed FastAPI/React bilingual web application featuring camera capture, batch analysis, PDF/CSV reporting, and multi-turn farmer Q\&A.
+
+\subsection{Thesis Organization}
+The remainder of this thesis is organized as follows:
+\begin{itemize}
+    \item \textbf{Chapter 2: Background Study} reviews plant pathology diagnostics, traditional ML baselines, modern lightweight and ensemble CNN architectures, transfer-learning optimization strategies, XAI (Grad-CAM), and agricultural LLM advisory systems.
+    \item \textbf{Chapter 3: Research Methodology} details the proposed five-stage framework, leak-aware dataset contract and preprocessing, the optimized MobileNetV2 architecture and four comparative benchmark designs, and the Grad-CAM, Gemini LLM, and FastAPI/React web application modules.
+    \item \textbf{Chapter 4: Implementation and Result Analysis} presents the dual-GPU experimental setup, complete quantitative and visual results for all five models, the v5-to-v6 optimization ablation, Pareto accuracy-to-size analysis, Grad-CAM heatmaps, live web application screens, and state-of-the-art comparison.
+    \item \textbf{Chapter 5: Standards, Constraints, and Milestones} examines UN SDG alignment, engineering standards, societal impacts, ethical safeguards, technical challenges, categorized project constraints, and the 26-week execution timeline.
+    \item \textbf{Chapter 6: Conclusion} synthesizes the key achievements, candidly documents remaining limitations, and outlines concrete future work including on-device TFLite deployment and multi-crop expansion.
+\end{itemize}
+
+\subsection*{Summary}
+This chapter established the agricultural urgency and engineering objectives behind building an accurate, compact (8.64~MB), and explainable potato leaf disease detection system for farmers. It defined the problem of balancing accuracy against model size on uncontrolled field imagery, outlined our five-architecture benchmark and web-application contributions, and presented the Complex Engineering Analysis. Chapter~2 reviews the supporting literature and formalizes the research gaps addressed by this work.
