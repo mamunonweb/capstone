@@ -39,7 +39,7 @@ SDG 15 & Life on Land & Reducing indiscriminate fungicide and bactericide runoff
 \begin{itemize}
     \item \textbf{Software Coding Standards (PEP~8):} All notebook training pipelines and FastAPI backend modules adhere to PEP~8 conventions, modular function boundaries, and explicit configuration contracts.
     \item \textbf{Reproducibility and Export Verification Standards:} Fixed seeds (\texttt{42}), deterministic perceptual-hash split assertions, automated post-training sanity gates, and export probability-parity verification ($\Delta_{\max} = 0.00 \times 10^{0}$) ensure every published number is auditable and reproducible.
-    \item \textbf{Data Licensing and Evaluation Standards:} Public field imagery is used solely for academic research under its Kaggle repository license \cite{shabrina2024novel}, and all five models are evaluated with standardized multi-class metrics on an identical held-out leak-aware test set \cite{grandini2020metrics}.
+    \item \textbf{Data Licensing and Evaluation Standards:} Public field imagery is used solely for academic research under its Kaggle repository license \cite{shabrina2024novel}, and all four architectures are evaluated with standardized multi-class metrics on an identical held-out leak-aware test set \cite{grandini2020metrics}.
 \end{itemize}
 
 \subsection{Impacts on Society}
@@ -61,9 +61,9 @@ Responsible AI deployment in agriculture requires proactive mitigation of bias, 
 \subsection{Challenges}
 Key technical challenges encountered and resolved during development included:
 \begin{itemize}
-    \item \textbf{Preventing Split Leakage in Field Imagery:} Burst photographs of identical leaves initially risked inflating validation scores; implementing 64-bit perceptual difference hashing ($\text{dHash} \le 10$) with union-find clustering and \texttt{StratifiedGroupKFold} eliminated cross-split leakage across all five notebooks.
-    \item \textbf{Eliminating Fine-Tuning Instability:} Unfreezing MobileNetV2 Batch Normalization layers in \texttt{02} v5 triggered a sharp validation-loss spike ($0.83 \rightarrow 2.63$). Restoring Stage-1 best head weights, freezing all BN layers across the top 54 layers, and adopting AdamW with gradient clipping resolved this completely and drove a $+2.17$ percentage-point accuracy gain.
-    \item \textbf{Portable Serialization Across Multi-Backbone Ensembles and Dual GPUs:} Custom Keras \texttt{Lambda} preprocessing layers and in-strategy evaluation initially caused serialization friction and probability discrepancies; replacing \texttt{Lambda} layers with native \texttt{Rescaling} and frozen $1 \times 1$ \texttt{Conv2D} layers and reloading checkpoints outside \texttt{MirroredStrategy} achieved $0.00 \times 10^{0}$ export parity across all five architectures.
+    \item \textbf{Preventing Split Leakage in Field Imagery:} Burst photographs of identical leaves initially risked inflating validation scores; implementing 64-bit perceptual difference hashing ($\text{dHash} \le 10$) with union-find clustering and \texttt{StratifiedGroupKFold} eliminated cross-split leakage across all experiments.
+    \item \textbf{Eliminating Fine-Tuning Instability:} Unfreezing MobileNetV2 Batch Normalization layers in our initial baseline run triggered a sharp validation-loss spike ($0.83 \rightarrow 2.63$). Restoring Stage-1 best head weights, freezing all BN layers across the top 54 layers, and adopting AdamW with gradient clipping resolved this completely and drove a $+2.17$ percentage-point accuracy gain.
+    \item \textbf{Portable Serialization Across Multi-Backbone Ensembles and Dual GPUs:} Custom Keras \texttt{Lambda} preprocessing layers and in-strategy evaluation initially caused serialization friction and probability discrepancies; replacing \texttt{Lambda} layers with native \texttt{Rescaling} and frozen $1 \times 1$ \texttt{Conv2D} layers and reloading checkpoints outside \texttt{MirroredStrategy} achieved $0.00 \times 10^{0}$ export parity across all four architectures.
     \item \textbf{Distinguishing Overlapping Foliar Lesions:} Visual similarity between \textit{Fungal Disease}, \textit{Phytophthora}, and early-stage lesions against cluttered soil backgrounds remained the primary error source, motivating photometric brightness augmentation and 4-view TTA.
 \end{itemize}
 
@@ -84,7 +84,7 @@ The project was executed over a 26-week schedule divided into Phase~I (Planning,
     \item \textbf{Weeks 1--2:} Literature review covering agricultural computer vision, lightweight CNNs, transfer learning, XAI, and LLM advisory systems.
     \item \textbf{Weeks 3--5:} Dataset curation, exploratory audit, and implementation of leak-aware perceptual-hash ($\text{dHash} \le 10$) \texttt{StratifiedGroupKFold} splitting.
     \item \textbf{Weeks 6--10:} Architectural design of the compact MobileNetV2 pipeline, preprocessing contract, and training augmentation workflow.
-    \item \textbf{Weeks 11--13:} Design and standardization of the four comparative benchmark pipelines (MultiNet-V3, Benchmark MobileNetV2, InceptionV3, NASNetMobile).
+    \item \textbf{Weeks 11--13:} Design and standardization of the three comparative benchmark pipelines (MultiNet-V3 Ensemble, InceptionV3, NASNetMobile).
 \end{itemize}
 
 \begin{figure}[htbp]
@@ -96,7 +96,7 @@ The project was executed over a 26-week schedule divided into Phase~I (Planning,
 
 \subsubsection{Phase II: Implementation, Benchmarking, Deployment, and Documentation (Weeks 14--26)}
 \begin{itemize}
-    \item \textbf{Weeks 14--17:} Dual-GPU training of all five models on Kaggle, export-integrity verification, and v5-to-v6 fine-tuning optimization (frozen BN, AdamW, 4-view TTA).
+    \item \textbf{Weeks 14--17:} Dual-GPU training of all four architectures on Kaggle, export-integrity verification, and fine-tuning optimization (frozen BN, AdamW, 4-view TTA).
     \item \textbf{Weeks 18--21:} Comparative Pareto accuracy-to-size analysis, Grad-CAM verification across architectures, Gemini safety-prompt integration, and FastAPI/React farmer web application deployment.
     \item \textbf{Weeks 22--26:} Full compilation of experimental tables, figures, thesis chapters, and final capstone defense preparation.
 \end{itemize}
