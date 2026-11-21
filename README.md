@@ -62,7 +62,7 @@ The system centers on a fine-tuned **8.64 MB MobileNetV2** classifier (`2,264,38
 | **LaTeX Source** | [`02/latex_report/main.tex`](02/latex_report/main.tex) | [`01/latex_report/main.tex`](01/latex_report/main.tex) |
 | **Defense Presentation (PDF / PPTX)** | [`Potato_Leaf_Disease_Defense_Slides.pdf`](02/presentation/Potato_Leaf_Disease_Defense_Slides.pdf) • [`.pptx`](02/presentation/Potato_Leaf_Disease_Defense_Slides.pptx) *(35 slides, with speaker notes)* | [`Potato_Leaf_Disease_Defense_Slides.pptx`](01/presentation/Potato_Leaf_Disease_Defense_Slides.pptx) *(40 slides)* |
 | **Defense Script & Slide Notes** | [`02/presentation/PRESENTATION_NOTES.md`](02/presentation/PRESENTATION_NOTES.md) *(verbatim script, per-slide terms & Q&A)* | — |
-| **Primary Experiment Notebook** | [`explainable-cnn-potato-leaf-disease-detection-02.ipynb`](02/explainable-cnn-potato-leaf-disease-detection-02.ipynb) | [`explainable-cnn-potato-leaf-disease-detection-01.ipynb`](01/explainable-cnn-potato-leaf-disease-detection-01.ipynb) |
+| **Primary Experiment Notebook** | [`explainable-cnn-potato-leaf-disease-detection.ipynb`](02/explainable-cnn-potato-leaf-disease-detection.ipynb) | [`explainable-cnn-potato-leaf-disease-detection-01.ipynb`](01/explainable-cnn-potato-leaf-disease-detection-01.ipynb) |
 | **Benchmark Notebooks** | [`02/benchmark_models/`](02/benchmark_models/) *(MultiNet-V3, InceptionV3, NASNetMobile)* | Included in `01` notebook *(Custom CNN, ResNet50, MobileNetV2)* |
 | **Kaggle Dataset & Runs** | [Dataset](https://www.kaggle.com/datasets/mamunonweb/potato-disease-dataset-03) • [All Rendered Runs](#published-kaggle-notebooks--dataset) | Included with outputs inside `01` `.ipynb` |
 | **Live Deployed Web App** | **[https://potato.mamunlab.com/](https://potato.mamunlab.com/)** | — |
@@ -76,7 +76,7 @@ The `02/` notebooks in this repository are stored clean (without embedded cell o
 | Resource | Local Notebook | Published Kaggle Link | Key Test Result (`N = 231`) |
 | :--- | :--- | :--- | :--- |
 | **Curated 5-Class Dataset** | `potato-disease-dataset-03` | [kaggle.com/datasets/mamunonweb/potato-disease-dataset-03](https://www.kaggle.com/datasets/mamunonweb/potato-disease-dataset-03) | 2,321 images (2,283 `dHash <= 10` groups) |
-| **Proposed MobileNetV2** | [`02/explainable-cnn-potato-leaf-disease-detection-02.ipynb`](02/explainable-cnn-potato-leaf-disease-detection-02.ipynb) | [kaggle.com/code/mamunonweb/explainable-cnn-potato-leaf-disease-detection](https://www.kaggle.com/code/mamunonweb/explainable-cnn-potato-leaf-disease-detection) | **93.51%** (`0.9272` F1) • **93.94%** TTA • `8.64 MB` |
+| **Proposed MobileNetV2** | [`02/explainable-cnn-potato-leaf-disease-detection.ipynb`](02/explainable-cnn-potato-leaf-disease-detection.ipynb) | [kaggle.com/code/mamunonweb/explainable-cnn-potato-leaf-disease-detection](https://www.kaggle.com/code/mamunonweb/explainable-cnn-potato-leaf-disease-detection) | **93.51%** (`0.9272` F1) • **93.94%** TTA • `8.64 MB` |
 | **MultiNet-V3 Ensemble** *(Benchmark)* | [`02/benchmark_models/multinet-v3.ipynb`](02/benchmark_models/multinet-v3.ipynb) | [kaggle.com/code/mamunonweb/multinet-v3-ensemble](https://www.kaggle.com/code/mamunonweb/multinet-v3-ensemble) | 90.91% (`0.8975` F1) • `118.55 MB` |
 | **InceptionV3 (`299x299`)** *(Benchmark)* | [`02/benchmark_models/inception-v3.ipynb`](02/benchmark_models/inception-v3.ipynb) | [kaggle.com/code/mamunonweb/inceptionv3](https://www.kaggle.com/code/mamunonweb/inceptionv3) | 84.42% (`0.8296` F1) • `85.18 MB` |
 | **NASNetMobile** *(Benchmark)* | [`02/benchmark_models/nasnetmobile.ipynb`](02/benchmark_models/nasnetmobile.ipynb) | [kaggle.com/code/mamunonweb/nasnetmobile](https://www.kaggle.com/code/mamunonweb/nasnetmobile) | 72.73% (`0.7049` F1) • `17.33 MB` |
@@ -118,7 +118,7 @@ capstone/
 │   └── presentation/
 │       └── Potato_Leaf_Disease_Defense_Slides.pptx      # 40-slide defense deck
 └── 02/                                                  # Phase 02: Final 5-class GPU system & benchmarks
-    ├── explainable-cnn-potato-leaf-disease-detection-02.ipynb   # Proposed 8.64 MB MobileNetV2 notebook
+    ├── explainable-cnn-potato-leaf-disease-detection.ipynb   # Proposed 8.64 MB MobileNetV2 notebook
     ├── benchmark_models/                                # Identical-split comparative benchmarks
     │   ├── multinet-v3.ipynb                            # EfficientNetB0 + MobileNetV2 + ResNet50 (118.55 MB)
     │   ├── inception-v3.ipynb                           # InceptionV3 299x299 (85.18 MB)
@@ -144,7 +144,7 @@ capstone/
 ## System Architecture & Methodology (`02/`)
 
 <p align="center">
-  <img src="02/latex_report/image/02_workflow.png" alt="End-to-End System Architecture" width="92%">
+  <img src="02/latex_report/image/workflow.png" alt="End-to-End System Architecture" width="92%">
 </p>
 
 ### 1. Leak-Aware Dataset Contract
@@ -204,8 +204,8 @@ Evaluated on the identical `N = 231` unseen leak-aware test split (`Δ_max = 0.0
 | 4 | [NASNetMobile](https://www.kaggle.com/code/mamunonweb/nasnetmobile) | 4.54M | 17.33 | 0.9642 | 72.73% | 0.7049 | 0.569 | Front 2 |
 
 <p align="center">
-  <img src="02/latex_report/image/02_benchmark_comparison.png" alt="Overall and Per-Class Benchmark Comparison" width="49%">
-  <img src="02/latex_report/image/02_pareto_tradeoff.png" alt="Accuracy-to-Size Pareto Frontier" width="48%">
+  <img src="02/latex_report/image/benchmark_comparison.png" alt="Overall and Per-Class Benchmark Comparison" width="49%">
+  <img src="02/latex_report/image/pareto_tradeoff.png" alt="Accuracy-to-Size Pareto Frontier" width="48%">
 </p>
 
 ### Zero-Size-Cost Fine-Tuning Ablation
@@ -253,7 +253,7 @@ Documented in [`01/latex_report/main.pdf`](01/latex_report/main.pdf) (`N = 308` 
   5. **Disease Info Cards:** Structured *Overview*, *Symptoms*, *Possible causes*, *Recommended actions*, and *Prevention* cards with persistent non-clinical screening disclaimers.
 
 <p align="center">
-  <img src="02/latex_report/image/02_gradcam.png" alt="Grad-CAM Visual Explanations from Proposed MobileNetV2" width="88%">
+  <img src="02/latex_report/image/gradcam.png" alt="Grad-CAM Visual Explanations from Proposed MobileNetV2" width="88%">
 </p>
 
 <p align="center">
@@ -283,7 +283,7 @@ Documented in [`01/latex_report/main.pdf`](01/latex_report/main.pdf) (`N = 308` 
    ```
 3. **Run the primary model notebook** to reproduce the `8.64 MB` MobileNetV2 results, Grad-CAM visualizations, and export integrity check:
    ```bash
-   jupyter notebook 02/explainable-cnn-potato-leaf-disease-detection-02.ipynb
+   jupyter notebook 02/explainable-cnn-potato-leaf-disease-detection.ipynb
    ```
 4. **Run any comparative benchmark** under the identical leak-aware split:
    - `02/benchmark_models/multinet-v3.ipynb`

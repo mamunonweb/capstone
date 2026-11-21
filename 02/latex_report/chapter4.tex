@@ -58,7 +58,7 @@ Perceptual difference hashing ($\text{dHash} \le 10$) identified \textbf{2,283 d
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.96\textwidth]{image/02_class_split_dist.png}
+\includegraphics[width=0.96\textwidth]{image/class_split_dist.png}
 \caption{Five-class dataset distribution (left) and leak-aware Train/Validation/Test split across 2,283 perceptual-hash groups (right).}
 \label{fig:class_split}
 \end{figure}
@@ -171,7 +171,7 @@ In the initial baseline run, unfreezing BN layers at Epoch~9 triggered a severe 
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.98\textwidth]{image/02_training_curves.png}
+\includegraphics[width=0.98\textwidth]{image/training_curves.png}
 \caption[Training and validation curves for Proposed MobileNetV2.]{Training and validation accuracy, loss, and macro-F1 curves for the proposed fine-tuned MobileNetV2 model (45 epochs, zero fine-tuning shock at Stage~2 transition).}
 \label{fig:02_curves}
 \end{figure}
@@ -224,7 +224,7 @@ Viral Disease & 0.98 & 0.94 & 0.96 & 53 \\
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.68\textwidth]{image/02_confusion_matrix.png}
+\includegraphics[width=0.68\textwidth]{image/confusion_matrix.png}
 \caption[Confusion matrix of Proposed MobileNetV2 on the 231-image test set.]{Confusion matrix of the proposed fine-tuned MobileNetV2 (\texttt{fine-tune-checkpoint}) on the 231-image leak-aware test set (93.51\% accuracy, 0.9272 macro-F1).}
 \label{fig:02_cm}
 \end{figure}
@@ -341,14 +341,14 @@ Viral Disease (53) & \textbf{0.96} & 0.91 & 0.87 & 0.76 \\
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.98\textwidth]{image/02_benchmark_comparison.png}
+\includegraphics[width=0.98\textwidth]{image/benchmark_comparison.png}
 \caption{Overall test accuracy and macro-F1 across all four benchmarked architectures (left) and per-class F1 heatmap (right) on the identical 231-image leak-aware test split.}
 \label{fig:bench_comp}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.92\textwidth]{image/02_pareto_tradeoff.png}
+\includegraphics[width=0.92\textwidth]{image/pareto_tradeoff.png}
 \caption{Accuracy-to-size Pareto frontier (Test Macro-F1 vs.\ serialized weight size in MB on a logarithmic scale). Proposed MobileNetV2 sits alone on Pareto Front~1, strictly dominating all heavier and alternative benchmark models.}
 \label{fig:pareto}
 \end{figure}
@@ -366,7 +366,7 @@ Figures~\ref{fig:02_gradcam}, \ref{fig:multinet_gradcam}, and \ref{fig:inception
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.86\textwidth]{image/02_gradcam.png}
+\includegraphics[width=0.86\textwidth]{image/gradcam.png}
 \caption[Grad-CAM visual explanations from Proposed MobileNetV2.]{Grad-CAM visual explanations from the proposed MobileNetV2 model (\texttt{Conv\_1}) showing Original Image (left), Activation Heatmap (center), and Overlay (right) on unseen test leaves.}
 \label{fig:02_gradcam}
 \end{figure}
