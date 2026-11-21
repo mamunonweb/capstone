@@ -61,7 +61,7 @@ The system centers on a fine-tuned **8.64 MB MobileNetV2** classifier (`2,264,38
 | **LaTeX Source** | [`02/latex_report/main.tex`](02/latex_report/main.tex) | [`01/latex_report/main.tex`](01/latex_report/main.tex) |
 | **Defense Presentation (PDF / PPTX)** | [`Potato_Leaf_Disease_Defense_Slides.pdf`](02/presentation/Potato_Leaf_Disease_Defense_Slides.pdf) • [`.pptx`](02/presentation/Potato_Leaf_Disease_Defense_Slides.pptx) *(35 slides)* | [`Potato_Leaf_Disease_Defense_Slides.pptx`](01/presentation/Potato_Leaf_Disease_Defense_Slides.pptx) *(40 slides)* |
 | **Primary Experiment Notebook** | [`explainable-cnn-potato-leaf-disease-detection-02.ipynb`](02/explainable-cnn-potato-leaf-disease-detection-02.ipynb) | [`explainable-cnn-potato-leaf-disease-detection-01.ipynb`](01/explainable-cnn-potato-leaf-disease-detection-01.ipynb) |
-| **Benchmark Notebooks** | [`02/benchmark_models/`](02/benchmark_models/) *(MultiNet-V3, InceptionV3, NASNetMobile, MobileNetV2)* | Included in `01` notebook *(Custom CNN, ResNet50, MobileNetV2)* |
+| **Benchmark Notebooks** | [`02/benchmark_models/`](02/benchmark_models/) *(MultiNet-V3, InceptionV3, NASNetMobile)* | Included in `01` notebook *(Custom CNN, ResNet50, MobileNetV2)* |
 | **Kaggle Dataset & Runs** | [Dataset](https://www.kaggle.com/datasets/mamunonweb/potato-disease-dataset-03) • [All Rendered Runs](#published-kaggle-notebooks--dataset) | Included with outputs inside `01` `.ipynb` |
 | **Live Deployed Web App** | **[https://potato.mamunlab.com/](https://potato.mamunlab.com/)** | — |
 
@@ -74,11 +74,10 @@ The `02/` notebooks in this repository are stored clean (without embedded cell o
 | Resource | Local Notebook | Published Kaggle Link | Key Test Result (`N = 231`) |
 | :--- | :--- | :--- | :--- |
 | **Curated 5-Class Dataset** | `potato-disease-dataset-03` | [kaggle.com/datasets/mamunonweb/potato-disease-dataset-03](https://www.kaggle.com/datasets/mamunonweb/potato-disease-dataset-03) | 2,321 images (2,283 `dHash <= 10` groups) |
-| **Proposed MobileNetV2** *(Primary)* | [`02/explainable-cnn-potato-leaf-disease-detection-02.ipynb`](02/explainable-cnn-potato-leaf-disease-detection-02.ipynb) | [kaggle.com/code/mamunonweb/explainable-cnn-potato-leaf-disease-detection](https://www.kaggle.com/code/mamunonweb/explainable-cnn-potato-leaf-disease-detection) | **93.51%** (`0.9272` F1) • **93.94%** TTA • `8.64 MB` |
+| **Proposed MobileNetV2** | [`02/explainable-cnn-potato-leaf-disease-detection-02.ipynb`](02/explainable-cnn-potato-leaf-disease-detection-02.ipynb) | [kaggle.com/code/mamunonweb/explainable-cnn-potato-leaf-disease-detection](https://www.kaggle.com/code/mamunonweb/explainable-cnn-potato-leaf-disease-detection) | **93.51%** (`0.9272` F1) • **93.94%** TTA • `8.64 MB` |
 | **MultiNet-V3 Ensemble** *(Benchmark)* | [`02/benchmark_models/multinet-v3.ipynb`](02/benchmark_models/multinet-v3.ipynb) | [kaggle.com/code/mamunonweb/multinet-v3-ensemble](https://www.kaggle.com/code/mamunonweb/multinet-v3-ensemble) | 90.91% (`0.8975` F1) • `118.55 MB` |
 | **InceptionV3 (`299x299`)** *(Benchmark)* | [`02/benchmark_models/inception-v3.ipynb`](02/benchmark_models/inception-v3.ipynb) | [kaggle.com/code/mamunonweb/inceptionv3](https://www.kaggle.com/code/mamunonweb/inceptionv3) | 84.42% (`0.8296` F1) • `85.18 MB` |
 | **NASNetMobile** *(Benchmark)* | [`02/benchmark_models/nasnetmobile.ipynb`](02/benchmark_models/nasnetmobile.ipynb) | [kaggle.com/code/mamunonweb/nasnetmobile](https://www.kaggle.com/code/mamunonweb/nasnetmobile) | 72.73% (`0.7049` F1) • `17.33 MB` |
-| **Benchmark MobileNetV2** *(Unified-Head Ref)* | [`02/benchmark_models/mobilenet-v2.ipynb`](02/benchmark_models/mobilenet-v2.ipynb) | [kaggle.com/code/mamunonweb/mobilenetv2](https://www.kaggle.com/code/mamunonweb/mobilenetv2) | 86.15% (`0.8486` F1) • `9.87 MB` *(heavier `Dense(256)` head reference)* |
 
 ---
 
@@ -121,8 +120,7 @@ capstone/
     ├── benchmark_models/                                # Identical-split comparative benchmarks
     │   ├── multinet-v3.ipynb                            # EfficientNetB0 + MobileNetV2 + ResNet50 (118.55 MB)
     │   ├── inception-v3.ipynb                           # InceptionV3 299x299 (85.18 MB)
-    │   ├── nasnetmobile.ipynb                           # NASNetMobile (17.33 MB)
-    │   └── mobilenet-v2.ipynb                           # Unified benchmark-harness MobileNetV2 template
+    │   └── nasnetmobile.ipynb                           # NASNetMobile (17.33 MB)
     ├── latex_report/                                    # BUBT V4 LaTeX thesis report (81 pages)
     │   ├── main.tex                                     # Master LaTeX entry point (IEEE biblatex/biber)
     │   ├── main.pdf                                     # Compiled PDF report
