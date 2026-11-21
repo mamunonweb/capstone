@@ -36,6 +36,7 @@ The system centers on a fine-tuned **8.64 MB MobileNetV2** classifier (`2,264,38
 - [Explainable AI (Grad-CAM), Gemini Advisory & Web Application](#explainable-ai-grad-cam-gemini-advisory--web-application)
 - [Reproducing the Experiments](#reproducing-the-experiments)
 - [Compiling the LaTeX Thesis Reports](#compiling-the-latex-thesis-reports)
+- [Technical Glossary & Key Concepts](#technical-glossary--key-concepts)
 - [Limitations & Future Work](#limitations--future-work)
 - [Team & Supervision](#team--supervision)
 - [Citation & References](#citation--references)
@@ -59,7 +60,8 @@ The system centers on a fine-tuned **8.64 MB MobileNetV2** classifier (`2,264,38
 | :--- | :--- | :--- |
 | **Compiled Thesis Report (PDF)** | [`02/latex_report/main.pdf`](02/latex_report/main.pdf) *(81 pages)* | [`01/latex_report/main.pdf`](01/latex_report/main.pdf) *(87 pages)* |
 | **LaTeX Source** | [`02/latex_report/main.tex`](02/latex_report/main.tex) | [`01/latex_report/main.tex`](01/latex_report/main.tex) |
-| **Defense Presentation (PDF / PPTX)** | [`Potato_Leaf_Disease_Defense_Slides.pdf`](02/presentation/Potato_Leaf_Disease_Defense_Slides.pdf) • [`.pptx`](02/presentation/Potato_Leaf_Disease_Defense_Slides.pptx) *(35 slides)* | [`Potato_Leaf_Disease_Defense_Slides.pptx`](01/presentation/Potato_Leaf_Disease_Defense_Slides.pptx) *(40 slides)* |
+| **Defense Presentation (PDF / PPTX)** | [`Potato_Leaf_Disease_Defense_Slides.pdf`](02/presentation/Potato_Leaf_Disease_Defense_Slides.pdf) • [`.pptx`](02/presentation/Potato_Leaf_Disease_Defense_Slides.pptx) *(35 slides, with speaker notes)* | [`Potato_Leaf_Disease_Defense_Slides.pptx`](01/presentation/Potato_Leaf_Disease_Defense_Slides.pptx) *(40 slides)* |
+| **Defense Script & Slide Notes** | [`02/presentation/PRESENTATION_NOTES.md`](02/presentation/PRESENTATION_NOTES.md) *(verbatim script, per-slide terms & Q&A)* | — |
 | **Primary Experiment Notebook** | [`explainable-cnn-potato-leaf-disease-detection-02.ipynb`](02/explainable-cnn-potato-leaf-disease-detection-02.ipynb) | [`explainable-cnn-potato-leaf-disease-detection-01.ipynb`](01/explainable-cnn-potato-leaf-disease-detection-01.ipynb) |
 | **Benchmark Notebooks** | [`02/benchmark_models/`](02/benchmark_models/) *(MultiNet-V3, InceptionV3, NASNetMobile)* | Included in `01` notebook *(Custom CNN, ResNet50, MobileNetV2)* |
 | **Kaggle Dataset & Runs** | [Dataset](https://www.kaggle.com/datasets/mamunonweb/potato-disease-dataset-03) • [All Rendered Runs](#published-kaggle-notebooks--dataset) | Included with outputs inside `01` `.ipynb` |
@@ -130,8 +132,9 @@ capstone/
     │   ├── AI Report.png, Similarity Score.png
     │   └── image/                                       # Training curves, CMs, Pareto plot, Grad-CAM, UI
     └── presentation/
-        ├── Potato_Leaf_Disease_Defense_Slides.pptx      # 35-slide defense deck
-        └── Potato_Leaf_Disease_Defense_Slides.pdf       # Exported PDF defense deck
+        ├── Potato_Leaf_Disease_Defense_Slides.pptx      # 35-slide defense deck (with embedded speaker notes)
+        ├── Potato_Leaf_Disease_Defense_Slides.pdf       # Exported PDF defense deck
+        └── PRESENTATION_NOTES.md                        # Verbatim defense script, per-slide term guide & Q&A
 ```
 
 > **Note:** Local historical drafts in `archive/` and intermediate LaTeX build artifacts (`*.aux`, `*.bbl`, `*.log`, `*.toc`, etc.) are excluded via [`.gitignore`](.gitignore), while both compiled thesis PDFs (`01/latex_report/main.pdf` and `02/latex_report/main.pdf`) are tracked directly in Git.
@@ -330,6 +333,95 @@ latexmk -pdf -interaction=nonstopmode main.tex
 ```bash
 grep -E "^!|Undefined|Output written on" main.log | tail -n 15
 ```
+
+---
+
+## Technical Glossary & Key Concepts
+
+A plain-language reference covering the plant-pathology, dataset, deep-learning, benchmarking, explainability, and deployment terminology used across the thesis reports, notebooks, and [defense presentation notes](02/presentation/PRESENTATION_NOTES.md).
+
+### 1. Plant Pathology & Dataset Terms
+
+| Term | Plain-Language Explanation |
+| :--- | :--- |
+| **Foliar Disease** | A crop disease that manifests on plant leaves (*foliage*), impairing photosynthesis and reducing tuber yield. |
+| **Oomycete (*Phytophthora infestans*)** | A fungal-like water-mold pathogen responsible for **Potato Late Blight**. It spreads aggressively in cool, humid weather and causes dark water-soaked blotches; high recall on this class is agronomically critical. |
+| **Early Blight (*Alternaria solani*)** | A common fungal potato disease characterized by dark brown spots with concentric "target-like" rings on older foliage. |
+| **Necrotic Lesion** | Localized patches of dead, darkened brown or black leaf tissue caused by pathogen infection. |
+| **Chlorosis & Mosaic Mottling** | Yellowing of green leaf tissue (*chlorosis*) or patchy light-green/yellow discoloration (*mosaic mottling*) commonly caused by viral infections such as Potato Virus Y (PVY). |
+| **Uncontrolled Field Imagery** | Outdoor farm photos captured under natural daylight with shadows, soil, plastic mulch, hands, and overlapping leaves—unlike clean, uniform-background lab datasets (e.g., PlantVillage). |
+| **Domain Shift** | The accuracy drop that occurs when a model trained on clean laboratory photos is deployed on cluttered outdoor farm photos. |
+| **Perceptual Difference Hash (`dHash`)** | A 64-bit visual fingerprint computed by resizing an image to `9×8` grayscale and comparing adjacent pixel intensities. Visually near-identical photos yield nearly identical `dHash` bitstrings. |
+| **Hamming Distance (`dHash <= 10`)** | The count of differing bits out of 64 between two `dHash` fingerprints. Grouping pairs with Hamming distance `<= 10` via **Union-Find clustering** keeps burst frames and cropped variants of the same leaf together. |
+| **Data Leakage** | An evaluation flaw where identical or near-duplicate images appear in both the training set and the test set, artificially inflating reported accuracy. |
+| **`StratifiedGroupKFold`** | A splitting algorithm that preserves exact class proportions (*Stratified*) while forcing every image in the same `dHash` duplicate cluster into the same split (*Group*), guaranteeing zero leakage. |
+| **Class Imbalance & Capped Class Weights** | Unequal image counts across classes (`729` Fungi vs. `199` Healthy). Normalized inverse-frequency loss weights (capped at `3.0`, mean `1.0`) penalize minority-class errors more strongly during training without destabilizing gradients. |
+
+### 2. Deep Learning & CNN Architecture Terms
+
+| Term | Plain-Language Explanation |
+| :--- | :--- |
+| **Convolutional Neural Network (CNN)** | A neural network specialized for images that learns hierarchical spatial filters—from edges and color patches in early layers to lesions and blight patterns in deeper layers. |
+| **Transfer Learning & ImageNet Pretraining** | Starting from weights pretrained on ~1.2M general ImageNet images rather than random initialization (`weights=None`), allowing strong visual feature extraction even on moderate agricultural datasets. |
+| **MobileNetV2** | A compact CNN architecture built on **depthwise separable convolutions** (splitting spatial filtering and channel mixing) and **inverted residual linear bottleneck blocks**, achieving strong accuracy in just `2.26M` parameters (`8.64 MB`). |
+| **Parameters** | The learnable numerical weights stored inside a neural network. Fewer parameters mean smaller file size, lower RAM usage, and faster CPU/mobile inference. |
+| **Native `Rescaling` Layer** | A built-in Keras layer mapping `[0, 1]` input pixels to `[-1, 1]` inside the saved model graph itself, eliminating custom Lambda layers and training-vs-serving preprocessing bugs. |
+| **Global Average Pooling (`GAP`)** | Compresses each `7×7` spatial feature map into a single average value (`7×7×1280 -> 1280`), keeping our classifier head lean (`6,405` params), curbing overfitting, and enabling Grad-CAM. |
+| **Dropout (`0.25`)** | Regularization that randomly disables 25% of activations during training so the classifier learns redundant, robust cues rather than memorizing training noise. |
+| **Softmax** | Output activation converting 5 raw class scores (*logits*) into calibrated probabilities between `0` and `1` summing to `100%`. |
+| **MultiNet-V3 Ensemble** | A heavyweight 3-backbone benchmark (`31.08M` params, `118.55 MB`) concatenating spatial features from EfficientNetB0, MobileNetV2, and ResNet50. |
+| **InceptionV3 (`299×299`)** | A medium-heavy multi-scale CNN benchmark (`22.33M` params, `85.18 MB`) using parallel `1×1`, `3×3`, and `5×5` convolutional branches at higher input resolution. |
+| **NASNetMobile** | A compact benchmark (`4.54M` params, `17.33 MB`) whose multi-branch cells were discovered automatically via Neural Architecture Search (NAS). |
+
+### 3. Training & Optimization Engineering Terms
+
+| Term | Plain-Language Explanation |
+| :--- | :--- |
+| **Two-Stage Fine-Tuning** | **Stage 1** trains only the new classifier head with the ImageNet backbone frozen (`LR = 1e-3`) and restores the best validation checkpoint; **Stage 2** unfreezes upper backbone layers (`top 54`) at a lower learning rate (`1e-4`) to adapt to potato leaf textures. |
+| **Batch Normalization (`BN`) & Frozen BN** | `BN` normalizes layer activations using batch statistics during training and running averages at inference. **Freezing all `BN` layers** during Stage-2 fine-tuning prevents noisy small-batch statistics from corrupting pretrained ImageNet averages. |
+| **Fine-Tuning Shock** | A sudden validation-loss spike immediately after unfreezing backbone layers (e.g., `0.83 -> 2.63` in our baseline ablation), caused by unfrozen `BN` drift or misaligned head weights. |
+| **`Adam` vs. `AdamW` (Decoupled Weight Decay)** | Adaptive gradient optimizers; `AdamW` cleanly decouples L2 weight decay (`1e-4`) from adaptive step scaling, yielding stronger generalization than standard `Adam`. |
+| **Gradient Clipping (`clipnorm = 1.0`)** | Caps the L2 norm of parameter gradients at `1.0` per step to prevent sudden destabilizing weight updates during fine-tuning. |
+| **Label Smoothing (`0.05`)** | Softens strict `0/1` training targets slightly so the classifier avoids overconfident probability spikes and calibrates better on ambiguous field photos. |
+| **Data Augmentation** | On-the-fly realistic transformations of training images (rotations `±30°`, shifts `±15%`, shear `10%`, zoom `±20%`, H/V flips, brightness `[0.85, 1.15]`) that simulate real field capture variation. |
+| **Early Stopping & `ReduceLROnPlateau`** | Callbacks monitoring validation `Macro-F1`: `ReduceLROnPlateau` lowers learning rate when progress stalls, and `EarlyStopping` halts training and restores the best checkpoint before overfitting sets in. |
+| **`tf.distribute.MirroredStrategy`** | TensorFlow's synchronous multi-GPU strategy that replicates the model across dual NVIDIA Tesla T4 GPUs and aggregates gradients across both devices per step. |
+| **Ablation Study** | Controlled comparison changing only the training recipe on the exact same `8.64 MB` model architecture to isolate and prove the source of accuracy and loss gains. |
+
+### 4. Evaluation, Benchmarking & Serving Integrity Terms
+
+| Term | Plain-Language Explanation |
+| :--- | :--- |
+| **Accuracy** | Overall percentage of unseen test leaves classified correctly (`216 / 231 = 93.51%` single-pass). Useful, but must be paired with Macro-F1 on imbalanced datasets. |
+| **Precision & Recall (Sensitivity)** | **Precision** = fraction of predicted positives that are truly that class (`TP / (TP + FP)`). **Recall** = fraction of true cases successfully caught (`TP / (TP + FN)`). High recall on Phytophthora (`94%`) and Bacteria (`100%`) prevents missed outbreaks. |
+| **F1-Score, Macro-F1 & Weighted F1** | **F1** is the harmonic mean of Precision and Recall. **Macro-F1** averages F1 equally across all 5 classes (strictest on imbalanced data); **Weighted F1** weights each class by its test **Support** (sample count). |
+| **Confusion Matrix** | A `5×5` table comparing true classes (rows) vs. predicted classes (columns), exposing exact inter-class error patterns (e.g., subtle Fungal vs. Healthy/Phytophthora edge cases). |
+| **Categorical Cross-Entropy Loss** | Measures probability calibration quality on unseen data; lower test loss (`0.4466` vs. `0.6727` baseline) means predictions are both more accurate and better calibrated. |
+| **4-View Test-Time Augmentation (TTA)** | Running the exact same exported model on 4 flipped views of a test leaf (original, H-flip, V-flip, HV-flip) and averaging predicted probabilities—lifting accuracy (`93.51% -> 93.94%`) at zero added storage cost. |
+| **Pareto Frontier & Pareto Dominance** | A model sits on **Pareto Front 1** if no competing model is simultaneously both smaller and more accurate. Proposed MobileNetV2 dominates Front 1 alone, pushing all 3 heavier benchmarks into the dominated region (Front 2). |
+| **Efficiency Index (`F1 / log10 MB`)** | Composite deployment-efficiency score rewarding high Macro-F1 inside a compact logarithmic storage footprint (`0.995` for Proposed MobileNetV2 vs. `0.433` for MultiNet-V3). |
+| **Export / Serving Integrity (`0.00e+00`)** | Reloading every exported `.keras` model outside `MirroredStrategy` in a clean inference process and verifying `0.00 × 10⁰` maximum probability difference versus training-time predictions. |
+
+### 5. Explainable AI (XAI) Terms
+
+| Term | Plain-Language Explanation |
+| :--- | :--- |
+| **Explainable AI (XAI)** | Methods that make machine-learning decisions transparent and verifiable to humans rather than returning opaque black-box labels. |
+| **Grad-CAM** | *Gradient-weighted Class Activation Mapping* — computes gradients of the predicted class score with respect to the last convolutional layer (`Conv_1` in MobileNetV2, `7×7×1280`) to highlight the exact image regions that drove the prediction. |
+| **Attention Heatmap & Overlay** | Color-coded spatial importance map (`red/yellow` = highest evidence, `blue` = ignored) blended over the original leaf photo so farmers and agronomists can inspect lesion focus. |
+| **Shortcut Learning (Background Suppression)** | Failure mode where a CNN relies on background soil, hands, or plastic mulch instead of actual disease symptoms. Grad-CAM verifies our model suppresses field background clutter and exposes attention drift on low-confidence edge cases. |
+
+### 6. LLM Advisory, Deployment & Future-Work Terms
+
+| Term | Plain-Language Explanation |
+| :--- | :--- |
+| **Large Language Model (`gemini-3.1-flash-lite`)** | A fast, low-latency generative language model accessed via Google's `google-genai` SDK to generate accessible bilingual (English & Bengali) explanations and field hygiene guidance. |
+| **Safety Guardrails & Text-Only Handoff** | Prompt-level rules that pass **only** the CNN's predicted class and confidence (never raw farmer photos) to Gemini, forbid inventing chemical brands or pesticide dosages, and instruct farmers to consult local agricultural extension officers on low confidence. |
+| **FastAPI, React, Docker Compose & Traefik** | Full-stack deployment architecture powering `potato.mamunlab.com`: FastAPI (Python) serves inference and Grad-CAM; React + TypeScript renders the responsive bilingual UI; Docker Compose and Traefik handle reproducible containerized HTTPS hosting. |
+| **Batch Screening** | Multi-image inference mode (up to 12 leaves at once) returning Healthy/Diseased counts, Top-3 probabilities, and CSV export for cooperative field scouts and extension workers. |
+| **TFLite & INT8 Quantization** | Converting 32-bit floating-point weights to 8-bit integers for TensorFlow Lite, shrinking the `8.64 MB` model to `~2.5 MB` for 100% offline rural Android inference. |
+| **Out-of-Distribution (OOD) Gating** | Planned confidence/entropy threshold check to reject non-leaf uploads gracefully instead of forcing a 5-class Softmax guess. |
+| **Retrieval-Augmented Generation (RAG)** | Planned grounding mechanism that retrieves verified passages from official regional agricultural extension manuals before generating Gemini advice. |
 
 ---
 
