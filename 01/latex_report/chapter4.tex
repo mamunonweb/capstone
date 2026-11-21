@@ -603,6 +603,3 @@ Shabrina et al.\ (2024) \cite{shabrina2024novel} & Uncontrolled Potato (3,076, 7
 \end{tabularx}
 \end{center}
 \end{table}
-
-\subsection*{Summary}
-This chapter presented the implementation and evaluation of the proposed system. ResNet50 achieved the highest test accuracy (31.82\%, AUC 0.7688), followed by MobileNetV2 (24.35\%) and the Custom CNN (19.81\%). While the Custom CNN is the smallest (1.98 MB) and much faster than ResNet50, both the Custom CNN and MobileNetV2 collapsed to single-class predictions under CPU-only, short-epoch training without ImageNet weights. The Grad-CAM and Gemini LLM pipelines were implemented end to end, providing a reproducible baseline ready for GPU retraining.
