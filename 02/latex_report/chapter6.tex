@@ -5,27 +5,32 @@
 
 \section{Conclusion}
 
-This thesis set out to engineer an \textbf{accurate, small, efficient, and explainable} potato leaf disease detection system and make it genuinely usable by farmers through a live web application. Using a curated 5-class uncontrolled field dataset (2,321 images spanning Bacteria, Fungi, Healthy, Phytopthora, and Virus) partitioned with perceptual-hash leak-aware grouping ($\text{dHash} \le 10$, 2,283 distinct groups, 1,859/231/231 split), we systematically optimized a compact \textbf{MobileNetV2} classifier and benchmarked it head-to-head against three distinct architectures on dual NVIDIA Tesla T4 GPUs.
+Our aim was to build a potato leaf disease detector that is \textbf{accurate, small, fast and explainable}, and to make it usable by farmers through a live web application. We used a 5-class field dataset of 2,321 images (Bacteria, Fungi, Healthy, Phytopthora and Virus). We grouped near-duplicate photos with perceptual hashing ($\text{dHash} \le 10$, 2,283 groups) and split the data into 1,859 training, 231 validation and 231 test images. We then tuned a small \textbf{MobileNetV2} model step by step and compared it with three other models on two NVIDIA Tesla T4 GPUs.
 
-The experimental results confirm that disciplined transfer-learning engineering beats brute-force parameter scale on realistic field datasets. By pairing MobileNetV2 with a lean 6,405-parameter classification head, Stage-1 best-weight restoration, frozen Batch Normalization across the top 54 fine-tuned layers, AdamW decoupled weight decay, and leaf-realistic geometric/photometric augmentation, our \textbf{8.64~MB (2.26M-parameter)} model achieved \textbf{93.51\% single-pass test accuracy}, \textbf{0.9272 macro-F1}, and \textbf{0.4466 test loss}---rising further to \textbf{93.94\% accuracy} and \textbf{0.9317 macro-F1} with zero-parameter 4-view Test-Time Augmentation. On the exact same unseen test set, it strictly dominated the accuracy-to-size Pareto frontier, outperforming the $13.7\times$ larger MultiNet-V3 ensemble (118.55~MB, 90.91\% accuracy, 0.8975 macro-F1), InceptionV3 (85.18~MB, 84.42\%), and NASNetMobile (17.33~MB, 72.73\%), while maintaining exact $0.00 \times 10^{0}$ export integrity parity.
+The results show that, on a real field dataset, careful training was more useful than a bigger model. We used MobileNetV2 with a small 6,405-parameter head. We restored the best Stage~1 weights, kept Batch Normalization frozen in the top 54 layers, used AdamW and added leaf-like augmentation. With this setup our \textbf{8.64~MB (2.26M-parameter)} model reached \textbf{93.51\% test accuracy}, \textbf{0.9272 macro-F1} and \textbf{0.4466 test loss}. With 4-view Test-Time Augmentation, which adds no parameters, it reached \textbf{93.94\% accuracy} and \textbf{0.9317 macro-F1}. On the same test images it was both smaller and more accurate than every other model. It beat the MultiNet-V3 ensemble, which is $13.7\times$ larger (118.55~MB, 90.91\% accuracy, 0.8975 macro-F1), as well as InceptionV3 (85.18~MB, 84.42\%) and NASNetMobile (17.33~MB, 72.73\%). The exported model gave exactly the same output as the trained one ($0.00 \times 10^{0}$ difference).
 
-Beyond classification metrics, Grad-CAM verified lesion-grounded visual explanations from \texttt{Conv\_1}, and the complete pipeline was deployed into a live bilingual (English and Bengali) FastAPI and React web application (\url{https://potato.mamunlab.com/}) featuring smartphone camera capture, 12-image batch analysis, PDF/CSV report export, and safety-constrained Google Gemini advisory chat. Together, these components deliver an end-to-end, reproducible, and field-oriented agricultural AI platform.
+Grad-CAM on \texttt{Conv\_1} showed that the model looks at the lesions on the leaf. We put the whole pipeline into a live FastAPI and React web application in English and Bengali (\url{https://potato.mamunlab.com/}). It has phone camera capture, batch analysis of 12 images, PDF/CSV reports and Google Gemini chat with safety rules. Together, these parts form a complete farm AI tool that others can rebuild and that is made for field use.
 
 \subsection{Limitations}
-Despite strong benchmark performance, several realistic limitations define the boundaries of the current system:
-\begin{itemize}
-    \item \textbf{Moderate Test Set Size and Minority Precision Trade-off:} While the leak-aware split eliminates duplicate inflation, the held-out test set contains 231 images (including 19 \textit{Healthy} and 31 \textit{Phytophthora} leaves). Achieving 100\% recall on \textit{Healthy} and 94\% recall on \textit{Phytophthora} came with 0.79 precision on \textit{Healthy} (a few mild fungal leaves misclassified as healthy).
-    \item \textbf{Single-Crop and Five-Category Scope:} The operational model classifies five potato leaf categories and does not yet detect insect pest damage, nematode stress, nutrient deficiencies, or diseases in other regional staple crops such as rice, tomato, or wheat.
-    \item \textbf{Online Dependency for LLM Advisory:} While the 8.64~MB CNN itself is lightweight enough for edge execution, the interactive Google Gemini advisory and web interface currently require internet connectivity, which can be unreliable in remote farming areas.
-    \item \textbf{Lack of Prospective Field Trials:} Evaluation was conducted on a curated public field benchmark rather than prospective multi-season farmer trials validated side-by-side with local plant pathologists.
-\end{itemize}
+The system still has some clear limits.
+
+\textit{Small test set.} The leak-aware split stops duplicates from raising the score, but the test set is only 231 images. It has just 19 \textit{Healthy} and 31 \textit{Phytophthora} leaves. Recall is 100\% for \textit{Healthy} and 94\% for \textit{Phytophthora}, but \textit{Healthy} precision is only 0.79, because a few leaves with mild fungal disease were called healthy.
+
+\textit{One crop and five classes.} The model knows only five potato leaf classes. It cannot yet detect insect damage, nematodes, nutrient problems or diseases of other local crops such as rice, tomato or wheat.
+
+\textit{Needs the internet.} The 8.64~MB CNN is small enough to run on a device, but the Gemini chat and the web app need an internet connection. In remote farm areas the connection is often poor.
+
+\textit{No real field trial.} We tested on a public field dataset. We did not run a trial with farmers over several seasons, with local plant doctors checking the results.
 
 \subsection{Future Works and Direction}
-To evolve this capstone platform into a widely deployable rural agricultural assistant, five concrete enhancements are planned:
-\begin{itemize}
-    \item \textbf{On-Device Offline Edge Deployment (TFLite / INT8 Quantization):} Post-training INT8 quantization of our 8.64~MB MobileNetV2 model can shrink the binary footprint to $\sim 2.5$~MB, enabling fully offline smartphone inference via TensorFlow Lite (TFLite) or ONNX Runtime Web, with cached disease cards available offline and Gemini chat syncing when connectivity returns.
-    \item \textbf{Expanded Multi-Region Data and Out-of-Distribution Rejection:} Collecting additional multi-season potato photographs (especially mild/early fungal and healthy leaves) and adding a confidence/entropy out-of-distribution gate will further improve \textit{Healthy} precision and reject non-leaf uploads cleanly.
-    \item \textbf{Multi-Crop Generalization:} Extending the same compact frozen-BN AdamW recipe and leak-aware benchmarking harness to regionally vital crops including rice, wheat, tomato, and eggplant.
-    \item \textbf{Retrieval-Augmented Advisory Grounded in Local Extension Manuals:} Augmenting the Gemini module with Retrieval-Augmented Generation (RAG) over verified local agricultural department guidelines will make Bengali and English management advice even more region-specific and auditable.
-    \item \textbf{Agronomist-in-the-Loop Field Validation:} Partnering with agricultural extension officers to evaluate Grad-CAM overlays, TTA predictions, and bilingual recommendations across real smallholder potato farms during active blight seasons.
-\end{itemize}
+To turn this capstone into a tool that many rural farmers can use, we plan five next steps.
+
+\textit{Offline use on the phone (TFLite / INT8).} INT8 quantization after training could shrink the 8.64~MB model to about 2.5~MB. It could then run fully offline on a phone with TensorFlow Lite (TFLite) or ONNX Runtime Web. The disease cards could be saved on the phone, and the Gemini chat could sync when the internet comes back.
+
+\textit{More data and rejection of unknown images.} We want to collect more potato photos from several seasons, especially mild fungal leaves and healthy leaves. We also want to add a check based on confidence or entropy that rejects photos that are not potato leaves. This should raise \textit{Healthy} precision.
+
+\textit{More crops.} We plan to use the same training recipe (frozen BN, AdamW) and the same leak-aware benchmark for other important local crops, such as rice, wheat, tomato and eggplant.
+
+\textit{Advice based on local manuals.} We want to add Retrieval-Augmented Generation (RAG) to the Gemini module, using checked guidelines from the local agriculture department. The Bengali and English advice would then fit the region better and would be easier to check.
+
+\textit{Field tests with agronomists.} We hope to work with agricultural extension officers to test the Grad-CAM overlays, the TTA predictions and the advice in both languages on real small potato farms during the blight season.

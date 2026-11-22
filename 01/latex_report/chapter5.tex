@@ -5,13 +5,13 @@
 
 \section{Standards, Constraints, and Milestones}
 
-While the technical implementation and performance metrics discussed in the previous chapters demonstrate the feasibility of the proposed plant disease detection system, it is equally important to evaluate the system through the lens of engineering standards, societal impact, and ethical considerations. This chapter outlines the compliance with industry standards adopted during development, analyzes the potential impact of this technology on agriculture and society, and discusses the ethical responsibilities associated with deploying AI in real-world scenarios. Furthermore, it highlights the technical challenges faced during the research and the constraints that define the scope of this work.
+The earlier chapters showed that the plant disease detection system can be built and how well it performs. It is just as important to look at the system from other sides: engineering standards, its effect on society and ethics. In this chapter we list the standards we followed, look at how this technology may affect farming and society, and discuss the ethical duties that come with using AI in real life. We also describe the technical problems we faced and the limits of this work.
 
 \subsection{Sustainability Standards}
-To align the research with global sustainability goals and maintain rigorous software engineering practices, the project addresses both the United Nations Sustainable Development Goals (SDGs) and technical development standards.
+The project supports the United Nations Sustainable Development Goals (SDGs), and it follows some basic software and testing standards.
 
 \subsubsection*{Alignment with UN Sustainable Development Goals (SDGs)}
-Automated, explainable crop-disease screening directly supports sustainable agricultural development across five UN SDGs summarized in Table~\ref{tab:sdg_alignment}:
+Automatic crop disease screening that can explain itself supports farming in a sustainable way. Table~\ref{tab:sdg_alignment} shows how it links to five UN SDGs.
 
 \begin{table}[htbp]
 \caption{Alignment of the Proposed System with UN Sustainable Development Goals}
@@ -19,73 +19,79 @@ Automated, explainable crop-disease screening directly supports sustainable agri
 \begin{center}
 \begin{tabularx}{\textwidth}{| p{2.3cm} | p{3.6cm} | X |}
 \hline
-\textbf{UN SDG} & \textbf{Goal Title} & \textbf{Project Alignment and Mechanism} \\
+\textbf{UN SDG} & \textbf{Goal Title} & \textbf{How the Project Helps} \\
 \hline
-SDG 2 & Zero Hunger & Early field-level diagnosis of potato diseases (such as late blight caused by \textit{Phytophthora infestans}, fungal, bacterial, and viral infections) helps smallholders curb yield losses and strengthen food security. \\
+SDG 2 & Zero Hunger & Early diagnosis of potato diseases in the field (such as late blight caused by \textit{Phytophthora infestans}, and fungal, bacterial and viral infections) helps small farmers lose less of their crop and improves food security. \\
 \hline
-SDG 9 & Industry, Innovation, and Infrastructure & Advances resilient, inclusive agricultural AI by designing a 162,887-parameter lightweight CNN suitable for low-cost smartphones alongside reproducible open-source pipelines. \\
+SDG 9 & Industry, Innovation, and Infrastructure & A small CNN with 162,887 parameters can run on cheap smartphones, and the open-source pipeline can be repeated by anyone. \\
 \hline
-SDG 12 & Responsible Consumption and Production & Targeted identification and safety-constrained LLM guidance discourage blind, blanket pesticide spraying, reducing chemical waste and improving input efficiency. \\
+SDG 12 & Responsible Consumption and Production & Finding the exact disease, together with safe LLM advice, helps farmers avoid spraying the whole field. They waste less chemical and use their inputs better. \\
 \hline
-SDG 13 & Climate Action & Helps farmers respond rapidly to climate-driven shifts in pest and pathogen outbreaks while minimizing unnecessary agrochemical production and field runoff. \\
+SDG 13 & Climate Action & Farmers can react fast when the changing climate brings new pest and disease outbreaks, and less chemical is made and washed into the fields. \\
 \hline
-SDG 15 & Life on Land & Reducing excessive fungicide and pesticide application protects soil biodiversity, pollinators, and nearby freshwater ecosystems from agricultural contamination. \\
+SDG 15 & Life on Land & Using less fungicide and pesticide protects soil life, bees and the water near the fields. \\
 \hline
 \end{tabularx}
 \end{center}
 \end{table}
 
 \subsubsection*{Engineering and Software Standards}
-In addition to SDG alignment, strict engineering and evaluation standards were followed throughout the development lifecycle:
-\begin{itemize}
-    \item \textbf{Software Coding Standards (PEP 8):} The entire codebase was written in Python adhering to the PEP~8 style guide, ensuring consistent indentation, naming conventions (\texttt{snake\_case} for functions, \texttt{CamelCase} for classes), and maintainable open-source readability.
-    \item \textbf{Data Licensing Standards:} The dataset was obtained from a public Kaggle repository and is used solely for educational and research purposes in accordance with the authors' license terms \cite{shabrina2024novel}.
-    \item \textbf{Model Evaluation Standards:} Standard machine learning metrics---Accuracy, Precision, Recall, Macro/Weighted F1-Score, Confusion Matrix, and ROC-AUC---were computed on a strictly held-out 10\% test split ($N = 308$) with fixed random seed ($42$), ensuring transparent reproducibility \cite{grandini2020metrics}.
-\end{itemize}
+We also followed engineering and testing standards during the whole project.
+
+\textit{Coding standard (PEP 8).} All code is written in Python and follows the PEP~8 style guide. Indentation is consistent, function names use \texttt{snake\_case} and class names use \texttt{CamelCase}, so the code is easy to read and maintain.
+
+\textit{Data license.} The dataset comes from a public Kaggle repository. We use it only for study and research, as the authors' license allows \cite{shabrina2024novel}.
+
+\textit{Testing standard.} We used the standard machine learning metrics: accuracy, precision, recall, macro and weighted F1-score, confusion matrix and ROC-AUC. They were computed on a 10\% test split ($N = 308$) that was kept apart from training, with a fixed random seed ($42$), so the results can be repeated \cite{grandini2020metrics}.
 
 \subsection{Impacts on Society}
-The deployment of an automated plant disease detection system has far-reaching implications for society, particularly in the agricultural sector:
-\begin{itemize}
-    \item \textbf{Food Security:} Early detection of potato problems such as Phytopthora (late blight), fungal and bacterial diseases, viruses and pests can help prevent large crop losses. This supports Sustainable Development Goal (SDG) 2: Zero Hunger.
-    \item \textbf{Economic Benefits for Farmers:} In many developing regions, farmers rely on expensive agricultural experts or on guesswork that can lead to crop failure. Once the system reaches a reliable accuracy, it can provide a low-cost first-level diagnosis and simple advice through the LLM module, which reduces costs and prevents losses.
-    \item \textbf{Environmental Sustainability:} Misdiagnosis often leads to the excessive and indiscriminate use of pesticides. By accurately identifying the specific disease, farmers can apply targeted treatments (precision agriculture), thereby reducing chemical runoff into soil and water, which protects the ecosystem.
-\end{itemize}
+An automatic plant disease detector can affect society in several ways, especially in farming.
+
+\textit{Food security.} Finding potato problems early, such as Phytopthora (late blight), fungal and bacterial diseases, viruses and pests, can stop large crop losses. This supports SDG 2: Zero Hunger.
+
+\textit{Saving money for farmers.} In many developing areas, farmers must pay expensive experts or simply guess, and a wrong guess can ruin the crop. Once the system is accurate enough, it can give a cheap first diagnosis and simple advice through the LLM module. This lowers costs and prevents losses.
+
+\textit{Protecting the environment.} A wrong diagnosis often leads to spraying too much pesticide everywhere. If farmers know the exact disease, they can treat only what is needed (precision agriculture). Less chemical then runs into the soil and water, which protects nature.
 
 \subsection{Ethics}
-Deploying Artificial Intelligence in agriculture brings specific ethical responsibilities that have been addressed in this research:
-\begin{itemize}
-    \item \textbf{Algorithmic Bias:} The dataset has a class imbalance (748 Fungi images vs.\ 68 Nematode images). The results show that this bias is real, because two models predicted only one class. To reduce this risk, stratified splitting and data augmentation were used, and class weighting is planned for future training.
-    \item \textbf{Risk of Misdiagnosis (False Negatives):} Telling a farmer that a diseased plant is healthy, or giving the wrong disease, can cause crop loss. Label smoothing was used to reduce overconfidence, and the LLM is instructed to warn the user when the confidence is low. The current models must not be used for real decisions until they reach a validated accuracy.
-    \item \textbf{Data Privacy and Responsible LLM Use:} The dataset does not contain personal data. The Gemini API key is stored in Kaggle Secrets, not in the code. Only the predicted class and the confidence are sent to the LLM (not the image), and the prompt forbids invented pesticide doses.
-\end{itemize}
+Using AI in farming brings some ethical duties. We dealt with them as follows.
+
+\textit{Bias in the data.} The classes are uneven (748 Fungi images against 68 Nematode images). Our results show that this bias is real, because two models predicted only one class. To lower this risk we used a stratified split and data augmentation, and we plan to add class weights in future training.
+
+\textit{Risk of a wrong diagnosis (false negatives).} If we tell a farmer that a sick plant is healthy, or name the wrong disease, the farmer may lose the crop. We used label smoothing so the model is less over-confident, and the LLM is told to warn the user when the confidence is low. The current models must not be used for real decisions until their accuracy has been tested and is good enough.
+
+\textit{Privacy and careful use of the LLM.} The dataset has no personal data. The Gemini API key is kept in Kaggle Secrets, not in the code. Only the predicted class and the confidence are sent to the LLM, not the image, and the prompt does not allow made-up pesticide doses.
 
 \subsection{Challenges}
-During the research and implementation phase, several significant challenges were encountered and addressed:
-\begin{itemize}
-    \item \textbf{Severe Class Imbalance:} The dataset is skewed (about 11:1). Training on this data led the models to favor majority classes (Pest and Fungi). Stratified splitting and augmentation were used, but stronger methods such as class weights or oversampling are still needed.
-    \item \textbf{Complex Field Backgrounds and Similar Symptoms:} The images contain soil, hands, plastic mulch and other plants, and different problems (for example, Fungi and Phytopthora) can show similar brown lesions. This makes the task much harder than with laboratory datasets.
-    \item \textbf{Hardware Limitations:} In the reported run, the GPU could not be initialized, so all models were trained on the CPU (about 4 to 9 minutes per epoch). This limited the training to 6 to 10 epochs. In addition, ImageNet weights were not downloaded, so ResNet50 and MobileNetV2 could not use transfer learning.
-\end{itemize}
+We met three big problems during the research.
+
+\textit{Very uneven classes.} The dataset has a ratio of about 11:1 between the largest and the smallest class. Training on it made the models favor the large classes (Pest and Fungi). We used a stratified split and augmentation, but stronger methods such as class weights or oversampling are still needed.
+
+\textit{Busy backgrounds and similar symptoms.} The photos show soil, hands, plastic mulch and other plants. Different problems, for example Fungi and Phytopthora, can also show similar brown lesions. This makes the task much harder than with lab datasets.
+
+\textit{Hardware limits.} In the reported run, the GPU could not start, so all models were trained on the CPU (about 4 to 9 minutes per epoch). This limited training to 6 to 10 epochs. The ImageNet weights were also not downloaded, so ResNet50 and MobileNetV2 could not use transfer learning.
 
 \subsection{Constraints}
-Every research project operates within practical technical, component, and financial boundaries. The key constraints governing this work are organized below:
-\begin{itemize}
-    \item \textbf{Design Constraints:} The architecture enforces a fixed $224 \times 224 \times 3$ RGB input tensor, targets a compact footprint ($\le 2$~MB for the Custom CNN) with \texttt{GlobalAveragePooling2D} to remain mobile-compatible, preserves a final convolutional layer (\texttt{conv2d\_5}) compatible with Grad-CAM, constrains classification strictly to the 7 potato categories, and restricts the LLM prompt to non-diagnostic, dosage-free advisory generation.
-    \item \textbf{Component Constraints:} The dataset comprises 3,076 field images with an $11:1$ class skew (only 68 Nematode images), limiting from-scratch deep feature learning. Within the Kaggle execution environment, offline restrictions prevented downloading pre-trained ImageNet weights for ResNet50 and MobileNetV2, while TensorFlow/Keras serialization mismatches affected Grad-CAM weight loading. Furthermore, the advisory module depends on external Google Gemini API availability and active internet connectivity, which may be intermittent in rural farming areas.
-    \item \textbf{Budget and Resource Constraints:} Executed as an academic capstone project with zero commercial funding, the system relied exclusively on free-tier Kaggle compute and open-source software without paid GPU clusters or funding for custom field-data collection. When CUDA GPU initialization failed in the reported session, CPU-only fallback ($\sim 4$--$9$ minutes per epoch) constrained training to 6--10 epochs at $224 \times 224$ resolution. For the advisory layer, \texttt{gemini-3.1-flash-lite} is invoked once per prediction to stay within free/low-cost API quotas.
-    \item \textbf{Operational and Regulatory Constraints:} Because the reported baseline achieved 31.82\% accuracy with single-class collapse in two models, responsible engineering ethics prohibit deploying these checkpoints for real agricultural decisions until retrained on GPU with pre-trained weights and validated by domain experts.
-\end{itemize}
+Every research project has practical limits on technology, parts and money. Our main limits were these.
+
+\textit{Design limits.} The model takes a fixed $224 \times 224 \times 3$ RGB input. The Custom CNN had to stay small ($\le 2$~MB), so we used \texttt{GlobalAveragePooling2D} to keep it phone-friendly. Its last convolutional layer (\texttt{conv2d\_5}) had to work with Grad-CAM. The model only sorts leaves into the 7 potato classes. The LLM prompt only allows advice: no diagnosis claims and no doses.
+
+\textit{Component limits.} The dataset has 3,076 field images with an $11:1$ class ratio (only 68 Nematode images), which is too little to learn deep features from zero. In the Kaggle session, offline limits stopped us from downloading the ImageNet weights for ResNet50 and MobileNetV2. A mismatch in TensorFlow/Keras model saving also broke the loading of the Grad-CAM weights. In addition, the advice module needs the outside Google Gemini API and an internet connection, and in rural farm areas the connection may drop.
+
+\textit{Budget limits.} This was a student capstone project with no outside funding. We used only the free Kaggle computing and open-source software. We had no paid GPU cluster and no money to collect our own field data. When the CUDA GPU did not start in the reported session, the CPU (about 4 to 9 minutes per epoch) allowed only 6 to 10 epochs at $224 \times 224$ resolution. For the advice, \texttt{gemini-3.1-flash-lite} is called once per prediction to stay inside the free or low-cost API limits.
+
+\textit{Operational and legal limits.} The reported baseline reached only 31.82\% accuracy, and two models predicted only one class. So it would not be responsible to use these checkpoints for real farming decisions. They must first be retrained on a GPU with pre-trained weights and checked by experts.
 
 \subsection{Timeline and Gantt Chart}
-To ensure the successful completion of this research within the stipulated timeframe of six months, a structured work schedule was established. The project lifecycle was divided into two primary phases: Phase I (Planning and Design) and Phase II (Implementation and Analysis). The breakdown of tasks and their respective timelines are visualized using Gantt charts in Figure~\ref{fig:gantt1} and Figure~\ref{fig:gantt2}.
+We had six months to finish this research, so we made a clear work plan. The project had two phases: Phase I (planning and design) and Phase II (building and analysis). Figure~\ref{fig:gantt1} and Figure~\ref{fig:gantt2} show the tasks and their timing as Gantt charts.
 
 \subsubsection{Phase I: Planning and System Design (Weeks 1--13)}
-The first phase focused on laying the theoretical foundation and preparing the necessary resources for the experiment. As illustrated in Figure~\ref{fig:gantt1}, this phase spanned the first three months (Weeks 1 to 13):
+In the first phase we studied the background and prepared what we needed for the experiment. As Figure~\ref{fig:gantt1} shows, this phase took the first three months (Weeks 1 to 13):
 \begin{itemize}
-    \item \textbf{Weeks 1--2:} Comprehensive literature review to identify gaps in existing plant disease detection methods.
-    \item \textbf{Weeks 3--5:} Collection of the Potato Leaf Disease (Uncontrolled Environment) dataset, followed by Exploratory Data Analysis (EDA) to understand the class distributions.
-    \item \textbf{Weeks 6--10:} Designing the architecture of the proposed Custom Lightweight CNN and setting up the preprocessing pipelines (normalization, augmentation).
-    \item \textbf{Weeks 11--13:} Selecting and configuring transfer learning models (ResNet50, MobileNetV2) and finalizing the research methodology.
+    \item \textbf{Weeks 1--2:} We read earlier studies to find the gaps in current plant disease detection methods.
+    \item \textbf{Weeks 3--5:} We collected the Potato Leaf Disease (Uncontrolled Environment) dataset and explored it (EDA) to understand the class counts.
+    \item \textbf{Weeks 6--10:} We designed our Custom Lightweight CNN and set up the preprocessing (normalization and augmentation).
+    \item \textbf{Weeks 11--13:} We chose and set up the transfer learning models (ResNet50 and MobileNetV2) and finished the research method.
 \end{itemize}
 
 \begin{figure}[htbp]
@@ -96,11 +102,11 @@ The first phase focused on laying the theoretical foundation and preparing the n
 \end{figure}
 
 \subsubsection{Phase II: Implementation, Testing, and Documentation (Weeks 14--26)}
-The second phase was dedicated to the practical execution, rigorous testing, and documentation of the research findings. As depicted in Figure~\ref{fig:gantt2}, this phase covered the remaining three months (Weeks 14 to 26):
+In the second phase we built and tested the system and wrote up the results. As Figure~\ref{fig:gantt2} shows, this phase took the last three months (Weeks 14 to 26):
 \begin{itemize}
-    \item \textbf{Weeks 14--17:} Training the three models (Custom CNN, ResNet50, MobileNetV2) and performing hyperparameter tuning to optimize accuracy.
-    \item \textbf{Weeks 18--21:} Conducting a comparative analysis of the models based on accuracy, loss and inference speed. In addition, Explainable AI (Grad-CAM) and the Gemini-based LLM advisory module were implemented during this period.
-    \item \textbf{Weeks 22--26:} Finalizing the results, visualizing performance metrics (Confusion Matrix, ROC Curves), and compiling the complete thesis report. The phase concluded with the preparation for the final defense presentation.
+    \item \textbf{Weeks 14--17:} We trained the three models (Custom CNN, ResNet50 and MobileNetV2) and tuned their hyperparameters to improve accuracy.
+    \item \textbf{Weeks 18--21:} We compared the models by accuracy, loss and inference speed. We also built the Explainable AI part (Grad-CAM) and the Gemini LLM advice module in this period.
+    \item \textbf{Weeks 22--26:} We finished the results, plotted the metrics (confusion matrix, ROC curves) and wrote the full thesis. At the end, we prepared for the final defense presentation.
 \end{itemize}
 
 \begin{figure}[htbp]

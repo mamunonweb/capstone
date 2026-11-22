@@ -5,15 +5,15 @@
 
 \section{Implementation and Result Analysis}
 
-This chapter presents the experimental implementation, quantitative evaluation, and comparative benchmark analysis of the proposed compact potato leaf disease detection system. Every result, curve, confusion matrix, and Grad-CAM visualization reported here is drawn directly from reproducible dual-GPU Kaggle notebook executions under the identical 5-class leak-aware dataset split. In particular, this chapter demonstrates how our proposed \textbf{8.64~MB fine-tuned MobileNetV2} model compares against three distinct benchmark architectures---MultiNet-V3 Ensemble, InceptionV3, and NASNetMobile---quantifies our zero-parameter-cost fine-tuning optimization ablation, verifies Grad-CAM spatial attention, and demonstrates the deployed farmer web application.
+This chapter describes how the system was implemented and reports the test results. All results, curves, confusion matrices and Grad-CAM images come from the dual-GPU Kaggle notebooks, and all of them use the same 5-class leak-aware split. We compare our \textbf{8.64~MB fine-tuned MobileNetV2} with three benchmark models (MultiNet-V3 Ensemble, InceptionV3 and NASNetMobile). We also report the fine-tuning ablation, which added no parameters, check the Grad-CAM attention and show the deployed web application.
 
 \subsection{Environment Setup}
 
 \subsubsection{Development Environment}
-All four architecture notebooks were implemented in Python~3 on Kaggle Cloud Notebooks using TensorFlow~2.20--2.21 and Keras~3.13.2 \cite{abadi2016tensorflow}. Data manipulation, leak-aware grouping, and evaluation relied on NumPy, Pandas, Pillow (PIL), and Scikit-learn, while visualizations were produced with Matplotlib and Seaborn. Global random seeds were fixed to \texttt{42} across Python, NumPy, and Keras/TensorFlow, and TensorFlow \texttt{MirroredStrategy} synchronized mini-batch updates across two GPU replicas. All exported models were saved in native \texttt{.keras} archive format and reloaded outside the distribution strategy to confirm exact numerical serving parity.
+We wrote all four model notebooks in Python~3 on Kaggle Cloud Notebooks, with TensorFlow~2.20--2.21 and Keras~3.13.2 \cite{abadi2016tensorflow}. NumPy, Pandas, Pillow (PIL) and Scikit-learn handled the data, the leak-aware grouping and the evaluation. Matplotlib and Seaborn drew the plots. The random seed was set to \texttt{42} in Python, NumPy and Keras/TensorFlow. TensorFlow \texttt{MirroredStrategy} kept the batch updates in sync on the two GPUs. Each model was saved in the native \texttt{.keras} format and then reloaded outside the distribution strategy, to confirm that it gives exactly the same numbers when served.
 
 \subsubsection{Hardware and Software Configuration}
-Table~\ref{tab:hw_sw} summarizes the cloud training and web-deployment specifications used across all experiments.
+Table~\ref{tab:hw_sw} lists the hardware and software we used for training and for the web deployment.
 
 \begin{table}[htbp]
 \caption{Hardware and Software Configuration for Dual-GPU Training and Web Deployment}
@@ -44,7 +44,7 @@ Web Application Stack & FastAPI backend (Python) + React frontend + Google Gemin
 \subsection{Data Preprocessing}
 
 \subsubsection{Dataset Audit and Visual Inspection}
-The 5-class dataset (\texttt{potato-disease-dataset-03}) contains 2,321 RGB field images. Representative samples extracted directly from the Kaggle notebook audit (Figure~\ref{fig:samples}) confirm realistic field variability: soil, mulch, shadows, variable leaf angles, and subtle foliar necrosis (especially between \textit{Fungal Disease} and \textit{Phytophthora} late blight).
+The 5-class dataset (\texttt{potato-disease-dataset-03}) has 2,321 RGB field images. Figure~\ref{fig:samples} shows samples taken from the Kaggle notebook audit. They show the usual field variety: soil, mulch, shadows, different leaf angles and small areas of dead tissue. \textit{Fungal Disease} and \textit{Phytophthora} late blight are especially hard to tell apart.
 
 \begin{figure}[htbp]
 \centering
@@ -54,7 +54,7 @@ The 5-class dataset (\texttt{potato-disease-dataset-03}) contains 2,321 RGB fiel
 \end{figure}
 
 \subsubsection{Leak-Aware Stratified Group Split}
-Perceptual difference hashing ($\text{dHash} \le 10$) identified \textbf{2,283 distinct image groups} across the 2,321 images, catching 38 near-duplicate clusters so identical leaves could never leak across subsets. Applying \texttt{StratifiedGroupKFold} produced identical disjoint splits across all four architectures, as plotted in Figure~\ref{fig:class_split} and tabulated per class in Table~\ref{tab:data_splits}.
+Perceptual difference hashing ($\text{dHash} \le 10$) found \textbf{2,283 distinct image groups} in the 2,321 images. It caught 38 near-duplicate clusters, so the same leaf cannot appear in two subsets. \texttt{StratifiedGroupKFold} then gave the same separate splits for all four models. Figure~\ref{fig:class_split} plots the split, and Table~\ref{tab:data_splits} gives the numbers per class.
 
 \begin{figure}[htbp]
 \centering
@@ -90,7 +90,7 @@ Virus (Viral Disease) & 417 & 51 & 53 & 521 & 0.7190 \\
 \end{table}
 
 \subsection{Model Implementation}
-Table~\ref{tab:arch_specs} contrasts the structural specifications, parameter budgets, weight footprints, optimization schedules, and Grad-CAM target layers of our proposed MobileNetV2 model against the three comparative benchmark architectures, while Table~\ref{tab:mnv2_layers} details the compact layer topology of Proposed MobileNetV2 (exact total: 2,264,389 parameters, 8.64~MB).
+Table~\ref{tab:arch_specs} compares our MobileNetV2 with the three benchmark models: input size, parameters, weight size, head, learning rates and the Grad-CAM layer. Table~\ref{tab:mnv2_layers} lists the layers of our MobileNetV2 (2,264,389 parameters in total, 8.64~MB).
 
 \begin{table}[htbp]
 \caption{Architectural and Training Configuration Summary Across All Four Benchmarked Architectures}
@@ -143,13 +143,13 @@ MultiNet-V3 Ensemble & $224^2$ & 31.08M & 118.55 & 3-Backbone Concat $\rightarro
 \end{table}
 
 \subsection{Evaluation Metrics}
-All models are evaluated on the exact same $N = 231$ unseen test images across $C = 5$ classes using standard multi-class classification, calibration, integrity, and size-efficiency metrics \cite{grandini2020metrics}:
+Every model is tested on the same $N = 231$ unseen images in $C = 5$ classes. We use the usual multi-class metrics \cite{grandini2020metrics}, plus an export check and a size-efficiency measure:
 \begin{itemize}
-    \item \textbf{Label-Smoothed Categorical Cross-Entropy Loss:} With soft targets $y^{\text{LS}}_k = (1 - \epsilon) y_k + \frac{\epsilon}{C}$ ($\epsilon = 0.05$ in our proposed recipe; $\epsilon = 0.10$ in benchmarks):
+    \item \textbf{Label-smoothed categorical cross-entropy loss.} With soft targets $y^{\text{LS}}_k = (1 - \epsilon) y_k + \frac{\epsilon}{C}$ ($\epsilon = 0.05$ in our proposed recipe; $\epsilon = 0.10$ in benchmarks):
     \begin{equation}
     \mathcal{L} = -\sum_{k=1}^{C} y^{\text{LS}}_k \log(\hat{p}_k).
     \end{equation}
-    \item \textbf{Accuracy, Per-Class Precision/Recall/F1, and Macro-F1:}
+    \item \textbf{Accuracy, per-class precision, recall and F1, and macro-F1.}
     \begin{equation}
     \begin{aligned}
     \text{Accuracy} &= \frac{\sum_{k=1}^{C} \text{TP}_k}{N}, \qquad
@@ -157,26 +157,26 @@ All models are evaluated on the exact same $N = 231$ unseen test images across $
     \text{Macro-F1} &= \frac{1}{C} \sum_{k=1}^{C} \text{F1}_k.
     \end{aligned}
     \end{equation}
-    Macro-F1 weights all five classes equally regardless of class frequency, directly penalizing majority-class bias.
-    \item \textbf{Export Integrity Discrepancy:} $\Delta_{\max} = \max_{i,k} |\hat{p}^{\text{reloaded}}_{i,k} - \hat{p}^{\text{selected}}_{i,k}|$, required to satisfy $\Delta_{\max} \le 10^{-3}$. Every model passed at $\Delta_{\max} = 0.00 \times 10^{0}$.
-    \item \textbf{Accuracy-to-Size Efficiency and Pareto Fronts:} To quantify compactness alongside accuracy, we compute non-dominated Pareto fronts over $(\text{Macro-F1}, \text{Size in MB})$ and report the log-scale efficiency ratio $\eta = \text{Macro-F1} / \log_{10}(\text{Size}_{\text{MB}})$.
+    Macro-F1 gives the five classes equal weight, whatever their size. A model that favors the largest class is therefore penalized.
+    \item \textbf{Export difference.} $\Delta_{\max} = \max_{i,k} |\hat{p}^{\text{reloaded}}_{i,k} - \hat{p}^{\text{selected}}_{i,k}|$ must be $\Delta_{\max} \le 10^{-3}$. All models passed with $\Delta_{\max} = 0.00 \times 10^{0}$.
+    \item \textbf{Accuracy against size, and Pareto fronts.} To measure size together with accuracy, we find the non-dominated Pareto fronts over $(\text{Macro-F1}, \text{Size in MB})$. We also report the log-scale ratio $\eta = \text{Macro-F1} / \log_{10}(\text{Size}_{\text{MB}})$.
 \end{itemize}
 
 \subsection{Performance Analysis}
 
 \subsubsection{Proposed MobileNetV2 Results and Fine-Tuning Optimization Ablation}
-Before finalizing our proposed classifier, we conducted a controlled training-recipe ablation on the exact same 8.64~MB MobileNetV2 architecture (2,264,389 parameters): comparing our initial baseline training run (unfrozen top 30 layers including Batch Normalization, Adam, 40 epochs, geometric-only augmentation) against the optimized recipe (Stage-1 best-weight restoration, frozen BN across top 54 layers, AdamW with weight decay $10^{-4}$ and gradient clipping, vertical flip + brightness/shear augmentation, 60 max epochs, and optional 4-view TTA).
+Before we fixed the final model, we ran an ablation on the training setup. The architecture stayed the same in both runs (8.64~MB MobileNetV2, 2,264,389 parameters). The first run was our baseline: the top 30 layers unfrozen, Batch Normalization included, Adam, 40 epochs and geometric augmentation only. The second run used the optimized setup: restoring the best Stage~1 weights, the top 54 layers unfrozen with BN kept frozen, AdamW with weight decay $10^{-4}$ and gradient clipping, vertical flips plus brightness and shear augmentation, up to 60 epochs, and optional 4-view TTA.
 
-In the initial baseline run, unfreezing BN layers at Epoch~9 triggered a severe validation-loss spike ($0.8344 \rightarrow 2.6258$) and crashed validation macro-F1 from $0.7918$ down to $0.4356$, wasting roughly 12 epochs recovering before reaching 91.34\% test accuracy (0.9119 macro-F1) at Epoch~40 while still climbing. Under our optimized recipe (Figure~\ref{fig:02_curves}), restoring the Epoch~6 head checkpoint (\texttt{val\_macro\_f1 = 0.8085}) and keeping all BN layers frozen completely eliminated fine-tuning shock: Epoch~11 validation loss immediately dropped ($0.7007 \rightarrow 0.6955$), validation macro-F1 climbed smoothly to a peak of \textbf{0.9184} (92.21\% validation accuracy, \texttt{val\_loss = 0.4434}) at Epoch~33, and Early Stopping converged cleanly at Epoch~45.
+In the baseline, the BN layers were unfrozen at Epoch~9. The validation loss jumped from $0.8344$ to $2.6258$, and validation macro-F1 fell from $0.7918$ to $0.4356$. The model needed about 12 epochs to recover. At Epoch~40 it reached 91.34\% test accuracy (0.9119 macro-F1), and it was still improving when training ended. The optimized run is shown in Figure~\ref{fig:02_curves}. Here we restored the Epoch~6 head checkpoint (\texttt{val\_macro\_f1 = 0.8085}) and kept all BN layers frozen, and the fine-tuning shock did not happen. At Epoch~11 the validation loss went down ($0.7007 \rightarrow 0.6955$) instead of up. Validation macro-F1 rose steadily to a peak of \textbf{0.9184} at Epoch~33 (92.21\% validation accuracy, \texttt{val\_loss = 0.4434}), and Early Stopping ended the run at Epoch~45.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.98\textwidth]{image/training_curves.png}
-\caption[Training and validation curves for Proposed MobileNetV2.]{Training and validation accuracy, loss, and macro-F1 curves for the proposed fine-tuned MobileNetV2 model (45 epochs, zero fine-tuning shock at Stage~2 transition).}
+\caption[Training and validation curves for Proposed MobileNetV2.]{Training and validation accuracy, loss, and macro-F1 curves for the proposed fine-tuned MobileNetV2 model (45 epochs; no fine-tuning shock when Stage~2 starts).}
 \label{fig:02_curves}
 \end{figure}
 
-As summarized in Table~\ref{tab:ft_ablation}, this zero-parameter-cost optimization lifted single-pass test accuracy from \textbf{91.34\% $\rightarrow$ 93.51\%} ($+2.17$ percentage points), macro-F1 from \textbf{0.9119 $\rightarrow$ 0.9272} ($+0.0153$), and reduced test loss by 33.6\% ($0.6727 \rightarrow 0.4466$). Adding zero-parameter 4-view TTA on the exact same exported \texttt{explainable\_\allowbreak cnn\_\allowbreak model.keras} artifact further increased performance to \textbf{93.94\% accuracy} and \textbf{0.9317 macro-F1}. Table~\ref{tab:02_per_class} and the confusion matrix in Figure~\ref{fig:02_cm} show standout per-class performance: \textbf{100\% recall} on both \textit{Bacterial Disease} (54/54, F1~0.99) and \textit{Healthy} (19/19), \textbf{0.96 F1} on \textit{Viral Disease} (0.98 precision), and a $+13$ percentage-point recall jump on the hardest disease class, \textit{Phytophthora} ($0.81 \rightarrow 0.94$ recall, F1~0.89).
+Table~\ref{tab:ft_ablation} sums up the effect. The changes add no parameters, yet single-pass test accuracy rose from \textbf{91.34\% to 93.51\%} ($+2.17$ percentage points). Macro-F1 rose from \textbf{0.9119 to 0.9272} ($+0.0153$), and test loss fell by 33.6\% ($0.6727 \rightarrow 0.4466$). With 4-view TTA on the same exported file (\texttt{explainable\_\allowbreak cnn\_\allowbreak model.keras}), the scores went up again to \textbf{93.94\% accuracy} and \textbf{0.9317 macro-F1}. Table~\ref{tab:02_per_class} and the confusion matrix in Figure~\ref{fig:02_cm} give the per-class picture. Recall is \textbf{100\%} for both \textit{Bacterial Disease} (54/54, F1~0.99) and \textit{Healthy} (19/19). \textit{Viral Disease} reaches \textbf{0.96 F1} (0.98 precision). For \textit{Phytophthora}, the hardest disease class, recall went up by 13 percentage points ($0.81 \rightarrow 0.94$, F1~0.89).
 
 \begin{table}[htbp]
 \caption{Zero-Size-Cost Training Optimization Ablation on Proposed MobileNetV2 ($N = 231$)}
@@ -231,7 +231,7 @@ Viral Disease & 0.98 & 0.94 & 0.96 & 53 \\
 
 \FloatBarrier
 \subsubsection{MultiNet-V3 Ensemble Benchmark Results}
-MultiNet-V3 (EfficientNetB0 + MobileNetV2 + ResNet50, 31.08M parameters, 118.55~MB) served as the high-capacity ensemble ceiling. Stage~1 rapidly reached \texttt{val\_macro\_f1 = 0.8866} by Epoch~5, and Stage~2 peaked at \texttt{val\_macro\_f1 = 0.9152} (91.77\% validation accuracy) at Epoch~16 before Early Stopping at Epoch~24 (Figure~\ref{fig:multinet_curves}). On the 231 test images, the selected \texttt{final-epoch} checkpoint achieved \textbf{90.91\% accuracy}, \textbf{0.8975 macro-F1}, and \textbf{0.6853 test loss} (mean confidence 0.8679; Figure~\ref{fig:multinet_cm}). While MultiNet-V3 excelled on Bacterial (0.96 F1, 100\% recall) and Phytophthora (0.89 F1), it suffered false positives into the minority \textit{Healthy} class (0.70 precision, 0.83 F1) and required $13.7\times$ more weight storage than Proposed MobileNetV2 while scoring 2.60 percentage points lower in accuracy.
+MultiNet-V3 (EfficientNetB0 + MobileNetV2 + ResNet50, 31.08M parameters, 118.55~MB) is our large ensemble reference. Stage~1 reached \texttt{val\_macro\_f1 = 0.8866} quickly, by Epoch~5. Stage~2 peaked at \texttt{val\_macro\_f1 = 0.9152} (91.77\% validation accuracy) at Epoch~16, and Early Stopping ended training at Epoch~24 (Figure~\ref{fig:multinet_curves}). On the 231 test images, the chosen \texttt{final-epoch} checkpoint scored \textbf{90.91\% accuracy}, \textbf{0.8975 macro-F1} and \textbf{0.6853 test loss}, with a mean confidence of 0.8679 (Figure~\ref{fig:multinet_cm}). MultiNet-V3 did well on Bacterial (0.96 F1, 100\% recall) and Phytophthora (0.89 F1). But it gave false positives for \textit{Healthy}, the smallest class: some diseased leaves were labeled healthy (0.70 precision, 0.83 F1). It also needs $13.7\times$ more storage than our MobileNetV2, and its accuracy is 2.60 percentage points lower.
 
 \begin{figure}[htbp]
 \centering
@@ -249,7 +249,7 @@ MultiNet-V3 (EfficientNetB0 + MobileNetV2 + ResNet50, 31.08M parameters, 118.55~
 
 \FloatBarrier
 \subsubsection{InceptionV3 Benchmark Results}
-InceptionV3 (22.33M parameters, 85.18~MB, $299 \times 299$ input resolution) trained for 33 epochs before Early Stopping, peaking at \texttt{val\_macro\_f1 = 0.8508} on Epoch~25 (Figure~\ref{fig:inception_curves}). On the 231 test images, InceptionV3 achieved \textbf{84.42\% accuracy}, \textbf{0.8296 macro-F1}, and \textbf{0.7353 test loss} (Figure~\ref{fig:inception_cm}). Although InceptionV3 achieved 0.96 F1 on Bacterial Disease, its Fungal recall (0.73), Phytophthora F1 (0.72), and Healthy precision (0.63) lagged behind Proposed MobileNetV2 despite requiring $9.86\times$ more weight storage and $1.78\times$ more input pixels per image.
+InceptionV3 (22.33M parameters, 85.18~MB, $299 \times 299$ input) trained for 33 epochs before Early Stopping. Its best \texttt{val\_macro\_f1} was 0.8508, at Epoch~25 (Figure~\ref{fig:inception_curves}). On the 231 test images it scored \textbf{84.42\% accuracy}, \textbf{0.8296 macro-F1} and \textbf{0.7353 test loss} (Figure~\ref{fig:inception_cm}). It reached 0.96 F1 on Bacterial Disease. Its Fungal recall (0.73), Phytophthora F1 (0.72) and Healthy precision (0.63), however, were all below our MobileNetV2, even though InceptionV3 needs $9.86\times$ more storage and $1.78\times$ more input pixels per image.
 
 \begin{figure}[htbp]
 \centering
@@ -267,7 +267,7 @@ InceptionV3 (22.33M parameters, 85.18~MB, $299 \times 299$ input resolution) tra
 
 \FloatBarrier
 \subsubsection{NASNetMobile Benchmark Results}
-NASNetMobile (4.54M parameters, 17.33~MB) struggled to adapt its deeply branched neural-architecture-searched cell graph under the moderate dataset size, peaking at \texttt{val\_macro\_f1 = 0.6964} on Epoch~13 and stopping early at Epoch~21 (Figure~\ref{fig:nasnet_curves}). On the unseen test set, NASNetMobile recorded \textbf{72.73\% accuracy}, \textbf{0.7049 macro-F1}, and \textbf{0.9642 test loss} (mean confidence 0.6633; Figure~\ref{fig:nasnet_cm}), with notable confusion across Healthy (0.40 precision, 0.54 F1), Phytophthora (0.63 F1), and Fungal Disease (0.58 recall).
+NASNetMobile (4.54M parameters, 17.33~MB) did not adapt well. Its searched cells have many branches, and our dataset is only medium-sized. Validation macro-F1 peaked at 0.6964 at Epoch~13, and training stopped early at Epoch~21 (Figure~\ref{fig:nasnet_curves}). On the unseen test set it scored \textbf{72.73\% accuracy}, \textbf{0.7049 macro-F1} and \textbf{0.9642 test loss}, with a mean confidence of 0.6633 (Figure~\ref{fig:nasnet_cm}). It confused many leaves in Healthy (0.40 precision, 0.54 F1), Phytophthora (0.63 F1) and Fungal Disease (0.58 recall).
 
 \begin{figure}[htbp]
 \centering
@@ -286,8 +286,8 @@ NASNetMobile (4.54M parameters, 17.33~MB) struggled to adapt its deeply branched
 \FloatBarrier
 \subsection{Key Findings and Discussions}
 
-\subsubsection{Synthesis of Comparative Benchmark and Accuracy-to-Size Pareto Analysis}
-Table~\ref{tab:final_summary} orders all four benchmarked architectures by Pareto accuracy-to-size dominance on the identical 231-image test split, Table~\ref{tab:per_class_all} compares per-class F1 scores across every architecture, Figure~\ref{fig:bench_comp} visualizes overall and per-class performance side by side, and Figure~\ref{fig:pareto} plots the log-scale Accuracy-to-Size Pareto Frontier.
+\subsubsection{Comparison of All Models and Accuracy-to-Size Analysis}
+Table~\ref{tab:final_summary} ranks the four models by Pareto accuracy-to-size dominance on the same 231-image test split. Table~\ref{tab:per_class_all} gives the per-class F1 of each model. Figure~\ref{fig:bench_comp} shows overall and per-class results side by side, and Figure~\ref{fig:pareto} plots the accuracy-to-size Pareto frontier on a log scale.
 
 \begin{table}[htbp]
 \caption{Master Benchmark Comparison Ordered by Accuracy-to-Size Pareto Dominance ($N = 231$)}
@@ -349,20 +349,22 @@ Viral Disease (53) & \textbf{0.96} & 0.91 & 0.87 & 0.76 \\
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.92\textwidth]{image/pareto_tradeoff.png}
-\caption{Accuracy-to-size Pareto frontier (Test Macro-F1 vs.\ serialized weight size in MB on a logarithmic scale). Proposed MobileNetV2 sits alone on Pareto Front~1, strictly dominating all heavier and alternative benchmark models.}
+\caption{Accuracy-to-size Pareto frontier (Test Macro-F1 vs.\ serialized weight size in MB on a logarithmic scale). Proposed MobileNetV2 is the only model on Pareto Front~1; it is both smaller and more accurate than every other benchmark model.}
 \label{fig:pareto}
 \end{figure}
 
-Four central engineering insights emerge from this benchmark:
-\begin{enumerate}
-    \item \textbf{Strict Pareto Dominance of Proposed MobileNetV2:} At \textbf{8.64~MB} (2.26M parameters), Proposed MobileNetV2 is simultaneously the \textbf{smallest} and \textbf{most accurate} model in the entire benchmark (93.51\% single-pass / 93.94\% TTA; efficiency score $0.990$--$0.995\;\text{F1}/\log_{10}\text{MB}$), strictly dominating MultiNet-V3 ($13.7\times$ larger, $-2.60\%$ accuracy), InceptionV3 ($9.9\times$ larger, $-9.09\%$ accuracy), and NASNetMobile ($2.0\times$ larger, $-20.78\%$ accuracy).
-    \item \textbf{Training Engineering Outweighs Raw Parameter Count on Small Field Datasets:} On 1,859 training images, stacking three heavy backbones (MultiNet-V3) or increasing input resolution to $299 \times 299$ (InceptionV3) did not beat a lean 6,405-parameter linear head trained with frozen-BN AdamW fine-tuning and leaf-realistic photometric augmentation.
-    \item \textbf{Per-Class Mastery Across Pathogens:} Proposed MobileNetV2 matches or surpasses every competing architecture on \textbf{all five classes} (Bacterial 0.99 vs.\ 0.96, Viral 0.96 vs.\ 0.91, Fungal 0.91 vs.\ 0.90, Phytophthora 0.89 vs.\ 0.89, Healthy 0.88 vs.\ 0.83), solving the severe \textit{Healthy} precision collapse observed across the heavier benchmark suite (0.40--0.70 precision vs.\ 0.79 in Proposed MobileNetV2).
-    \item \textbf{Verified Serving Portability:} Reloading every exported \texttt{.keras} artifact outside \texttt{MirroredStrategy} confirmed $0.00 \times 10^{0}$ maximum probability difference across all four architectures, validating safe production handoff to the FastAPI backend.
-\end{enumerate}
+We draw four main points from this benchmark.
+
+First, our MobileNetV2 is on the Pareto front by itself. At \textbf{8.64~MB} (2.26M parameters) it is both the \textbf{smallest} and the \textbf{most accurate} model we tested (93.51\% single-pass, 93.94\% with TTA; efficiency $0.990$--$0.995\;\text{F1}/\log_{10}\text{MB}$). MultiNet-V3 is $13.7\times$ larger and 2.60 percentage points less accurate. InceptionV3 is $9.9\times$ larger and 9.09 points less accurate. NASNetMobile is $2.0\times$ larger and 20.78 points less accurate.
+
+Second, on a small field dataset the training setup mattered more than the parameter count. With 1,859 training images, neither stacking three heavy backbones (MultiNet-V3) nor raising the input to $299 \times 299$ (InceptionV3) beat a plain 6,405-parameter linear head trained with frozen-BN AdamW fine-tuning and leaf-like color augmentation.
+
+Third, our model is at least as good as every other model on \textbf{all five classes}: Bacterial 0.99 vs.\ 0.96, Viral 0.96 vs.\ 0.91, Fungal 0.91 vs.\ 0.90, Phytophthora 0.89 vs.\ 0.89 and Healthy 0.88 vs.\ 0.83. The heavier models had poor precision on \textit{Healthy} (0.40--0.70). Our model reached 0.79.
+
+Fourth, the exported models are safe to serve. When we reloaded each \texttt{.keras} file outside \texttt{MirroredStrategy}, the maximum probability difference was $0.00 \times 10^{0}$ for all four models. This means the file handed to the FastAPI backend behaves exactly like the trained model.
 
 \subsubsection{Explainable AI (Grad-CAM) Validation Results}
-Figures~\ref{fig:02_gradcam}, \ref{fig:multinet_gradcam}, and \ref{fig:inception_gradcam} present Grad-CAM visual explanations generated directly from the trained Kaggle checkpoints on held-out test samples for Proposed MobileNetV2 (\texttt{Conv\_1}), MultiNet-V3 (\texttt{ensemble\_\allowbreak spatial\_\allowbreak features}), and InceptionV3 (\texttt{conv2d\_93}). Unlike untrained or collapsed baselines that activate over image borders, the fine-tuned MobileNetV2 heatmaps concentrate cleanly on symptomatic leaf tissue---localized dark lesions, chlorotic mottling, and blight margins---while suppressing background soil and plastic mulch. Furthermore, inspecting individual edge cases (such as a visually ambiguous \textit{Viral Disease} leaf predicted as \textit{Phytophthora} at 66.7\% confidence where attention drifted slightly onto background soil) demonstrates how Grad-CAM and confidence scores work together to alert farmers to seek human verification when symptoms overlap.
+Figures~\ref{fig:02_gradcam}, \ref{fig:multinet_gradcam} and \ref{fig:inception_gradcam} show Grad-CAM maps made from the trained Kaggle checkpoints on held-out test leaves. The layers are \texttt{Conv\_1} for our MobileNetV2, \texttt{ensemble\_\allowbreak spatial\_\allowbreak features} for MultiNet-V3 and \texttt{conv2d\_93} for InceptionV3. Untrained or collapsed models tend to light up the image borders. The fine-tuned MobileNetV2 instead focuses on the diseased tissue: dark lesions, yellow mottling and blight edges. Soil and plastic mulch in the background get little attention. Single hard cases are also useful. In one example, a \textit{Viral Disease} leaf that looks unclear was predicted as \textit{Phytophthora} with 66.7\% confidence, and its heatmap moved partly onto the soil. A case like this shows how the heatmap and the confidence score together can warn the farmer to ask an expert when symptoms overlap.
 
 \begin{figure}[htbp]
 \centering
@@ -386,7 +388,7 @@ Figures~\ref{fig:02_gradcam}, \ref{fig:multinet_gradcam}, and \ref{fig:inception
 \end{figure}
 
 \subsubsection{LLM-Based Advisory Pipeline}
-Figure~\ref{fig:llm_pipeline} illustrates the classifier-to-Gemini advisory pipeline. Once the compact CNN predicts a disease label and softmax confidence, only those structured fields (never raw user photographs) are passed to Google Gemini (\texttt{gemini-3.1-flash-lite}) with strict safety guardrails: explaining visual symptoms, summarizing practical cultural and sanitation steps, prohibiting fabricated pesticide brands or dosages, and prompting consultation with local agricultural extension officers whenever confidence is low.
+Figure~\ref{fig:llm_pipeline} shows how the classifier output reaches Gemini. After the CNN predicts a disease and a softmax confidence, only these two fields are sent to Google Gemini (\texttt{gemini-3.1-flash-lite}). The user's photo is never sent. Gemini follows fixed safety rules. It explains the visible symptoms and sums up practical field and hygiene steps. It may not invent pesticide brands or doses. When confidence is low, it tells the farmer to contact the local agricultural extension officer.
 
 \begin{figure}[htbp]
 \centering
@@ -395,15 +397,18 @@ Figure~\ref{fig:llm_pipeline} illustrates the classifier-to-Gemini advisory pipe
 \label{fig:llm_pipeline}
 \end{figure}
 
-\subsubsection{Web Application Deployment and Interface Demonstration}
-To ensure that farmers can directly benefit from our compact, accurate classifier without touching code, the complete detection, Grad-CAM explainability, and Gemini advisory pipeline is deployed as a live FastAPI and React web application at \url{https://potato.mamunlab.com/}. Figures~\ref{fig:webapp_detect}--\ref{fig:webapp_info} illustrate the five core operational screens designed for low-friction agricultural use:
-\begin{itemize}
-    \item \textbf{Single-Image Detection Interface (Figure~\ref{fig:webapp_detect}):} Supports drag-and-drop leaf upload (JPG/PNG up to 10~MB) and one-tap smartphone camera capture (\textit{Take a photo}), with top-bar navigation (\textit{Detect}, \textit{Results}, \textit{Batch}, \textit{Chat}, \textit{Info}) plus \textbf{English/Bengali} language and \textbf{Light/Dark} theme toggles.
-    \item \textbf{Prediction, Grad-CAM Overlay, and PDF Export (Figure~\ref{fig:webapp_results}):} Presents the predicted disease label, softmax confidence, class-probability breakdown, side-by-side original image and Grad-CAM \textit{Attention overlay}, an experimental attention-level indicator with explicit non-clinical framing, and one-click \textbf{PDF report} export.
-    \item \textbf{Multi-Image Batch Analysis and CSV Export (Figure~\ref{fig:webapp_batch}):} Screens up to 12 leaf images in a single request for field scouting, summarizing Healthy vs.\ Diseased counts alongside Top-3 probabilities per leaf and exporting via \textbf{Download CSV}.
-    \item \textbf{Bilingual AI Disease Assistant Chat (Figure~\ref{fig:ai_assistant}):} Seeds an interactive Google Gemini conversation directly from the predicted class and confidence in either \textbf{Bengali} or \textbf{English} (shown in Light and Dark themes) while enforcing dosage-free agricultural safety disclaimers.
-    \item \textbf{Structured Disease Information Cards (Figure~\ref{fig:webapp_info}):} Organizes practical guidance into five clear cards---\textit{Overview}, \textit{Symptoms}, \textit{Possible causes}, \textit{Recommended actions}, and \textit{Prevention}---with a persistent preliminary-screening notice.
-\end{itemize}
+\subsubsection{Web Application Deployment and Screens}
+Farmers should be able to use the classifier without touching any code. So we deployed detection, Grad-CAM and Gemini advice together as a live FastAPI and React web application at \url{https://potato.mamunlab.com/}. Figures~\ref{fig:webapp_detect}--\ref{fig:webapp_info} show its five main screens.
+
+The \textit{Detect} screen (Figure~\ref{fig:webapp_detect}) accepts a leaf photo by drag and drop (JPG/PNG up to 10~MB) or straight from the phone camera (\textit{Take a photo}). The top bar links to \textit{Detect}, \textit{Results}, \textit{Batch}, \textit{Chat} and \textit{Info}, and has switches for \textbf{English/Bengali} and \textbf{Light/Dark} mode.
+
+The \textit{Results} screen (Figure~\ref{fig:webapp_results}) shows the predicted disease, the softmax confidence and the probability of each class. The original photo appears next to the Grad-CAM \textit{Attention overlay}. There is also an experimental attention-level indicator, with a clear note that it is not a clinical measure, and a button to download a \textbf{PDF report}.
+
+The \textit{Batch Analysis} screen (Figure~\ref{fig:webapp_batch}) checks up to 12 leaf photos in one request, which helps when scouting a field. It counts Healthy and Diseased leaves, lists the top-3 probabilities for each leaf and exports the table with \textbf{Download CSV}.
+
+The \textit{Disease Assistant} chat (Figure~\ref{fig:ai_assistant}) starts a Google Gemini conversation from the predicted class and confidence, in \textbf{Bengali} or \textbf{English}. The figure shows both Light and Dark themes. The assistant always adds safety notes and gives no doses.
+
+The \textit{Info} screen (Figure~\ref{fig:webapp_info}) puts the advice on five cards: \textit{Overview}, \textit{Symptoms}, \textit{Possible causes}, \textit{Recommended actions} and \textit{Prevention}. A notice that this is only a first screening stays on the screen.
 
 \begin{figure}[htbp]
 \centering
@@ -441,7 +446,7 @@ To ensure that farmers can directly benefit from our compact, accurate classifie
 \end{figure}
 
 \subsection{Comparison with State of the Art Model}
-Table~\ref{tab:sota_comp} situates our compact Proposed MobileNetV2 pipeline alongside landmark plant-disease studies from the literature and our own internal heavyweight ensemble benchmark. While laboratory studies on PlantVillage (Mohanty et al.\ \cite{mohanty2016using}, Ferentinos \cite{ferentinos2018deep}, Too et al.\ \cite{too2019comparative}) report $>99\%$ accuracy on uniform plain backgrounds using models up to $\sim 138$M parameters, accuracy drops steeply under uncontrolled outdoor clutter \cite{mohanty2016using, shabrina2024novel}. On our leak-aware uncontrolled field benchmark, Proposed MobileNetV2 achieves \textbf{93.51\% single-pass accuracy} (\textbf{93.94\% with 4-view TTA}, \textbf{0.9317 macro-F1}) using only \textbf{2.26M parameters (8.64~MB)}---roughly $61\times$ smaller than VGG16 and $13.7\times$ smaller than our MultiNet-V3 ensemble---while uniquely integrating verified Grad-CAM explanations, bilingual safety-guarded Gemini advice, and a live farmer web application.
+Table~\ref{tab:sota_comp} places our MobileNetV2 next to well-known plant disease studies and next to our own large ensemble. The PlantVillage lab studies (Mohanty et al.\ \cite{mohanty2016using}, Ferentinos \cite{ferentinos2018deep}, Too et al.\ \cite{too2019comparative}) report more than 99\% accuracy on plain backgrounds, with models of up to $\sim 138$M parameters. On cluttered outdoor photos, accuracy falls sharply \cite{mohanty2016using, shabrina2024novel}. These numbers are therefore not directly comparable with ours. On our leak-aware field benchmark, our MobileNetV2 reaches \textbf{93.51\% single-pass accuracy} (\textbf{93.94\% with 4-view TTA}, \textbf{0.9317 macro-F1}) with only \textbf{2.26M parameters (8.64~MB)}. That is about $61\times$ smaller than VGG16 and $13.7\times$ smaller than our MultiNet-V3 ensemble. Among the studies in the table, it is also the only one that combines checked Grad-CAM explanations, Gemini advice in two languages with safety rules, and a live web application for farmers.
 
 \begin{table}[htbp]
 \caption{Comparison of the Proposed MobileNetV2 System with State-of-the-Art Studies and Internal Benchmarks}

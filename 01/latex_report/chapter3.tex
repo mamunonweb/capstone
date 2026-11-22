@@ -4,15 +4,15 @@
 \vspace{10mm}
 \section{Research Methodology}
 
-This chapter outlines the research methodology and the systematic engineering workflow used to develop the automated potato leaf disease detection and advisory system. Following the structured report specification, it presents the proposed end-to-end framework, dataset analysis and project requirements (including data collection, preprocessing, and convolutional feature selection), algorithmic and architectural model analysis (Custom Lightweight CNN, ResNet50, and MobileNetV2), and module-level explanations of the Grad-CAM explainability and Gemini LLM advisory subsystems.
+This chapter explains how we built the potato leaf disease detection and advice system, step by step. We follow the report format. First we give the full framework. Then we describe the dataset and the project requirements, including data collection, preprocessing and how the CNN selects features. After that we explain the three models (Custom Lightweight CNN, ResNet50 and MobileNetV2). Finally we explain the Grad-CAM module and the Gemini LLM advice module.
 
 \subsection{Proposed Framework}
-The proposed system integrates image-based classification, post-hoc visual explainability, and safety-constrained natural-language guidance into a four-stage end-to-end pipeline, as illustrated in Figure~\ref{fig:workflow}:
+The system has four stages. It classifies the image, shows why it made the decision and gives safe advice in normal language. Figure~\ref{fig:workflow} shows the stages:
 \begin{enumerate}
-    \item \textbf{Data Ingestion and Preprocessing:} Uncontrolled field images from the 7-class dataset are partitioned via stratified sampling ($80:10:10$), resized to $224 \times 224 \times 3$, augmented on the fly during training, and routed through model-specific normalization paths.
-    \item \textbf{Deep Learning Classification:} Three distinct Convolutional Neural Network (CNN) architectures---a proposed Custom Lightweight CNN, a frozen ResNet50 benchmark, and a from-scratch MobileNetV2 benchmark---are trained and evaluated under a unified loss and metric protocol.
-    \item \textbf{Explainable AI (Grad-CAM) Verification:} Gradient-weighted Class Activation Mapping (Grad-CAM) inspects the final convolutional layer to verify whether predicted classes are grounded in actual leaf lesions rather than background clutter.
-    \item \textbf{Confidence-Aware LLM Advisory:} The predicted disease label and softmax confidence score are passed to Google Gemini (\texttt{gemini-3.1-flash-lite}) with strict safety rules to generate farmer-friendly symptom summaries, management steps, and low-confidence warnings.
+    \item \textbf{Data loading and preprocessing.} Field images from the 7-class dataset are split with stratified sampling ($80:10:10$) and resized to $224 \times 224 \times 3$. Training images are augmented on the fly. Each model then gets its own type of normalization.
+    \item \textbf{Classification with deep learning.} We train and test three CNN models with the same loss and the same metrics: our Custom Lightweight CNN, a frozen ResNet50 benchmark and a MobileNetV2 benchmark trained from scratch.
+    \item \textbf{Checking with Grad-CAM.} Gradient-weighted Class Activation Mapping (Grad-CAM) looks at the last convolutional layer. It shows whether the prediction comes from the real leaf lesions or from the background.
+    \item \textbf{LLM advice based on confidence.} The predicted disease and the softmax confidence are sent to Google Gemini (\texttt{gemini-3.1-flash-lite}) with strict safety rules. Gemini writes a simple summary of the symptoms, management steps and a warning when the confidence is low.
 \end{enumerate}
 
 \begin{figure}[htbp]
@@ -22,17 +22,18 @@ The proposed system integrates image-based classification, post-hoc visual expla
 \label{fig:workflow}
 \end{figure}
 
-Before committing to full implementation, the proposed framework was evaluated for feasibility across three dimensions:
-\begin{itemize}
-    \item \textbf{Technical Feasibility:} The pipeline relies on well-documented, open-source Python libraries---primarily TensorFlow~2.20 and Keras \cite{abadi2016tensorflow}---executed in Kaggle cloud notebooks. Although GPU acceleration is supported by Kaggle, CUDA initialization failed in the reported baseline run (\texttt{failed call to cuInit}), requiring CPU fallback that proved sufficient to verify the complete end-to-end pipeline while capping the feasible number of training epochs.
-    \item \textbf{Operational Feasibility:} Once trained, the workflow requires minimal user effort: an end user uploads a leaf photograph and receives the predicted disease label, confidence percentage, Grad-CAM localization heatmap, and structured LLM advice, making it accessible to farmers and agricultural extension workers.
-    \item \textbf{Economic Feasibility:} All core software dependencies (Python, TensorFlow, Scikit-learn, OpenCV, Jupyter, and Kaggle Notebooks) are zero-cost and open source. The lightweight custom architecture minimizes inference hardware requirements, and invoking the Gemini API only once per diagnosis keeps advisory operating costs low.
-\end{itemize}
+Before the full build, we checked whether the framework was feasible in three ways.
+
+\textit{Technical.} The pipeline uses well-known open-source Python libraries, mainly TensorFlow~2.20 and Keras \cite{abadi2016tensorflow}, in Kaggle cloud notebooks. Kaggle offers GPUs, but in the reported baseline run CUDA did not start (\texttt{failed call to cuInit}), so the code ran on the CPU. The CPU was enough to test the whole pipeline from start to end, but it limited how many epochs we could train.
+
+\textit{Operational.} After training, the system is easy to use. The user uploads a leaf photo and gets the predicted disease, the confidence, a Grad-CAM heatmap and advice from the LLM. Farmers and agricultural extension workers can use it without special skills.
+
+\textit{Economic.} All the main software (Python, TensorFlow, Scikit-learn, OpenCV, Jupyter and Kaggle Notebooks) is free and open source. The small custom model needs little hardware to run. The Gemini API is called only once per diagnosis, so the cost of the advice stays low.
 
 \subsection{Dataset Analysis and Project Requirements}
-This study utilizes the \textit{Potato Leaf Disease Dataset in Uncontrolled Environment} published by Shabrina et al.\ \cite{shabrina2024novel} and hosted on Kaggle. Unlike plain-background laboratory benchmarks such as PlantVillage \cite{hughes2015open}, the dataset comprises 3,076 color field photographs containing complex backgrounds such as soil, plastic mulch, human hands, shadows, and overlapping foliage across seven target categories (six disease/pest classes and one healthy class, where \textit{Phytopthora} retains the upstream Kaggle dataset's exact folder spelling for \textit{Phytophthora} late blight).
+We use the \textit{Potato Leaf Disease Dataset in Uncontrolled Environment} from Shabrina et al.\ \cite{shabrina2024novel}, which is available on Kaggle. Lab datasets such as PlantVillage \cite{hughes2015open} have plain backgrounds. This dataset is different. It has 3,076 color photos taken in the field, with soil, plastic mulch, hands, shadows and other leaves in the background. There are seven classes: six disease or pest classes and one healthy class. (\textit{Phytopthora} is the folder name used in the Kaggle dataset for \textit{Phytophthora} late blight, and we kept that spelling.)
 
-As detailed in Table~\ref{tab:class_dist}, the dataset exhibits substantial class imbalance of approximately $11:1$ between the largest class (\textit{Fungi}, 748 images) and the smallest class (\textit{Nematode}, 68 images), with the \textit{Healthy} class also underrepresented (201 images). Addressing this skewness is essential during splitting and evaluation so that models do not achieve misleadingly low loss simply by predicting majority classes.
+Table~\ref{tab:class_dist} shows that the classes are very uneven. The largest class (\textit{Fungi}, 748 images) is about 11 times bigger than the smallest class (\textit{Nematode}, 68 images). The \textit{Healthy} class is also small (201 images). We had to handle this when splitting and testing the data. Otherwise a model could get a low loss just by predicting the large classes, and the result would be misleading.
 
 \begin{table}[htbp]
 \caption{Dataset Classes and Distribution of the Potato Leaf Disease Dataset}
@@ -63,82 +64,88 @@ Potato & Nematode & 68 & 2.21\% \\
 \end{table}
 
 \subsubsection{Data Collection and Preprocessing}
-Image file paths and corresponding directory labels were indexed into a structured Pandas DataFrame and partitioned using stratified sampling (\texttt{random\_state = 42}) in an $80:10:10$ ratio into training (2,460 images), validation (308 images), and unseen test (308 images) subsets so that every class is proportionally represented across all splits.
+We listed the image file paths and their folder labels in a Pandas DataFrame. We then split them with stratified sampling (\texttt{random\_state = 42}) at $80:10:10$ into training (2,460 images), validation (308 images) and unseen test (308 images) sets. This keeps the same share of each class in all three sets.
 
-Before feeding images into the networks, three preprocessing stages were applied:
-\begin{itemize}
-    \item \textbf{Spatial Resizing:} All RGB field images of varying native resolutions were resized to a uniform input tensor shape of $224 \times 224 \times 3$ via \texttt{flow\_from\_dataframe}.
-    \item \textbf{Architecture-Specific Normalization:} For the Custom CNN (Path~A), pixel intensities in $[0, 255]$ were linearly rescaled to $[0, 1]$ by dividing by $255.0$. For ResNet50 and MobileNetV2 (Path~B), the respective Keras \texttt{preprocess\_input} transformations were applied (channel reordering and ImageNet mean subtraction for ResNet50; scaling to $[-1, 1]$ for MobileNetV2).
-    \item \textbf{On-the-Fly Data Augmentation:} To mitigate overfitting and improve robustness to field orientation variations, the training generator applied random rotations (up to $20^\circ$), width and height shifts (up to 20\%), random zoom (up to 20\% with nearest-pixel fill), and horizontal flipping \cite{shorten2019survey}.
-\end{itemize}
+Before the images go into the networks, we apply three preprocessing steps.
+
+\textit{Resizing.} The field photos have different sizes. We resize all of them to $224 \times 224 \times 3$ with \texttt{flow\_from\_dataframe}.
+
+\textit{Normalization for each model.} For the Custom CNN (Path~A), we divide the pixel values by $255.0$, so they go from $[0, 255]$ to $[0, 1]$. For ResNet50 and MobileNetV2 (Path~B), we use the Keras \texttt{preprocess\_input} function of each model. For ResNet50 this changes the channel order and subtracts the ImageNet mean. For MobileNetV2 it scales the values to $[-1, 1]$.
+
+\textit{Augmentation during training.} To reduce overfitting and to handle leaves facing different ways, the training generator applies random rotation (up to $20^\circ$), width and height shifts (up to 20\%), random zoom (up to 20\%, filling with the nearest pixel) and horizontal flips \cite{shorten2019survey}.
 
 \subsubsection{Feature Selection and Representation}
-Classical plant pathology pipelines rely on manual feature selection---extracting hand-crafted descriptors such as Color Histograms, Gray-Level Co-occurrence Matrix (GLCM) texture statistics, or Scale-Invariant Feature Transform (SIFT) keypoints \cite{alhiary2011fast, arivazhagan2013detection, pujari2016image}. In uncontrolled field imagery containing soil, plastic mulch, shadows, and fingers, such low-level global descriptors frequently fail to separate background clutter from subtle foliar lesions \cite{ngugi2021recent}.
+Classic plant disease pipelines pick features by hand. They use descriptors such as color histograms, Gray-Level Co-occurrence Matrix (GLCM) texture or Scale-Invariant Feature Transform (SIFT) keypoints \cite{alhiary2011fast, arivazhagan2013detection, pujari2016image}. In field photos with soil, plastic mulch, shadows and fingers, these simple features often cannot separate the background from small lesions on the leaf \cite{ngugi2021recent}.
 
-Instead of manual feature engineering, the proposed pipeline performs \textbf{automated hierarchical feature selection} directly within the convolutional backbone:
-\begin{itemize}
-    \item \textbf{Multi-Scale Convolutional Filtering:} Early $3 \times 3$ convolutional layers isolate fine-grained edge, color-contrast, and spot cues, while deeper blocks aggregate higher-level lesion textures and leaf morphology.
-    \item \textbf{Activation and Normalization Gating:} Batch Normalization \cite{ioffe2015batch} stabilizes intermediate feature distributions across mini-batches, while Swish activation ($f(x) = x \cdot \sigma(\beta x)$) \cite{ramachandran2017swish} preserves smooth non-zero gradients for negative pre-activations, allowing richer feature retention than hard-thresholded ReLU.
-    \item \textbf{Spatial Feature Compression via Global Average Pooling (GAP):} Rather than flattening the final $28 \times 28 \times 128$ spatial tensor into $100{,}352$ raw scalars---which introduces severe parameter bloat and overfitting---GAP averages each of the 128 feature channels into a single discriminative descriptor vector of dimension $128$, acting as a structural feature selector that preserves class-discriminative channel activations for both the dense classifier and Grad-CAM localization.
-\end{itemize}
+In our pipeline the convolutional layers choose the features themselves, step by step.
+
+\textit{Convolution at several scales.} The first $3 \times 3$ convolution layers pick up small edges, color contrast and spots. The deeper blocks combine these into larger lesion textures and leaf shapes.
+
+\textit{Activation and normalization.} Batch Normalization \cite{ioffe2015batch} keeps the values inside the network stable from batch to batch. Swish activation ($f(x) = x \cdot \sigma(\beta x)$) \cite{ramachandran2017swish} keeps a small, smooth gradient for negative inputs, so more information passes through than with ReLU, which cuts negative values to zero.
+
+\textit{Compression with Global Average Pooling (GAP).} We could flatten the last $28 \times 28 \times 128$ tensor into $100{,}352$ numbers, but this would add a huge number of parameters and cause overfitting. Instead, GAP takes the average of each of the 128 channels, which gives a vector of only $128$ values. These values keep the channel information that separates the classes. They feed the dense classifier, and the same feature map is used for Grad-CAM.
 
 \subsubsection{Software and Hardware Project Requirements}
-To guarantee repeatable engineering execution, the system requirements were specified as follows:
-\begin{itemize}
-    \item \textbf{Functional Requirements:} (i) Accept standard RGB leaf images (JPG, PNG); (ii) automatically resize and normalize inputs according to the selected architecture; (iii) output one of the 7 potato classes with softmax confidence; (iv) render a Grad-CAM heatmap overlay highlighting discriminative leaf regions \cite{selvaraju2017grad}; and (v) generate farmer-readable advisory text via Gemini with explicit low-confidence warnings.
-    \item \textbf{Non-Functional Requirements:} Target test accuracy above 95\% for production readiness, low inference latency (ideally under 100~ms per image for interactive deployment), and modular extensibility for adding new disease classes.
-    \item \textbf{Dataset Requirements:} 3,076 labeled RGB field images across the 7 classes of the Kaggle uncontrolled-environment potato dataset \cite{shabrina2024novel}.
-    \item \textbf{Hardware Requirements (Training vs.\ Deployment):} Training specifies a multi-core x86 CPU (Intel Core~i5 / Ryzen~5 / cloud vCPU), $\ge 16$~GB RAM, and an NVIDIA GPU with $\ge 12$~GB VRAM for rapid convergence; deployment/inference targets standard mobile or laptop CPUs with $\ge 4$~GB RAM to support lightweight edge execution.
-\end{itemize}
+We set the following requirements so the work can be repeated.
+
+\textit{Functional requirements.} The system must (i) accept normal RGB leaf images (JPG, PNG); (ii) resize and normalize each input for the chosen model; (iii) output one of the 7 potato classes with its softmax confidence; (iv) draw a Grad-CAM heatmap on the leaf to show the important regions \cite{selvaraju2017grad}; and (v) write advice for farmers through Gemini, with a clear warning when the confidence is low.
+
+\textit{Non-functional requirements.} The target is more than 95\% test accuracy for real use, fast inference (best under 100~ms per image for interactive use) and a modular design so new disease classes can be added later.
+
+\textit{Dataset requirements.} 3,076 labeled RGB field images in the 7 classes of the Kaggle potato dataset taken in uncontrolled conditions \cite{shabrina2024novel}.
+
+\textit{Hardware requirements (training and use).} For training, we planned a multi-core x86 CPU (Intel Core~i5, Ryzen~5 or a cloud vCPU), at least 16~GB RAM and an NVIDIA GPU with at least 12~GB VRAM for fast training. For use after training, a normal phone or laptop CPU with at least 4~GB RAM should be enough to run the small model.
 
 \subsection{Algorithm and Model Analysis}
 
 \subsubsection{Proposed Custom Lightweight CNN}
-The proposed Custom Lightweight CNN was architected specifically to minimize parameter count and memory footprint while maintaining hierarchical feature extraction capability:
-\begin{itemize}
-    \item \textbf{Input Layer:} Accepts normalized RGB tensors of shape $(224, 224, 3)$.
-    \item \textbf{Convolutional Blocks:} Three sequential feature-extraction blocks, each comprising two $3 \times 3$ \texttt{Conv2D} layers with progressive filter widths ($16 \rightarrow 32$, $32 \rightarrow 64$, and $64 \rightarrow 128$), \texttt{BatchNormalization} \cite{ioffe2015batch}, Swish activation \cite{ramachandran2017swish}, $2 \times 2$ \texttt{MaxPooling2D}, and spatial regularization via \texttt{Dropout} ($0.20$, $0.20$, and $0.25$) \cite{srivastava2014dropout}.
-    \item \textbf{Compact Classification Head:} A \texttt{GlobalAveragePooling2D} layer reduces the $(28, 28, 128)$ feature map to 128 channels, followed by a 128-unit \texttt{Dense} layer, \texttt{BatchNormalization}, Swish, \texttt{Dropout(0.40)}, and a 7-unit \texttt{Softmax} output layer. The resulting network contains 162,887 total parameters (161,959 trainable; 636.28~KB raw weights, 1.98~MB saved artifact).
-\end{itemize}
+We designed the Custom Lightweight CNN to have as few parameters and as little memory use as possible, while it can still learn features layer by layer.
+
+\textit{Input layer.} It takes normalized RGB images of shape $(224, 224, 3)$.
+
+\textit{Convolution blocks.} There are three feature blocks, one after another. Each block has two $3 \times 3$ \texttt{Conv2D} layers. The number of filters grows from block to block ($16 \rightarrow 32$, $32 \rightarrow 64$ and $64 \rightarrow 128$). Each block also has \texttt{BatchNormalization} \cite{ioffe2015batch}, Swish activation \cite{ramachandran2017swish}, $2 \times 2$ \texttt{MaxPooling2D} and \texttt{Dropout} ($0.20$, $0.20$ and $0.25$) \cite{srivastava2014dropout}.
+
+\textit{Small classifier head.} A \texttt{GlobalAveragePooling2D} layer turns the $(28, 28, 128)$ feature map into 128 values. Then come a 128-unit \texttt{Dense} layer, \texttt{BatchNormalization}, Swish, \texttt{Dropout(0.40)} and a 7-unit \texttt{Softmax} output layer. The network has 162,887 parameters in total (161,959 trainable). The raw weights take 636.28~KB, and the saved file is 1.98~MB.
 
 \subsubsection{ResNet50 Architecture}
-ResNet50 \cite{he2016deep} serves as the deep-network benchmark, utilizing identity skip connections to prevent vanishing gradients across 50 layers. The top classification layers were removed (\texttt{include\_top = False}) and replaced with a compact head (\texttt{GlobalAveragePooling2D}, \texttt{Dense(64)}, \texttt{BatchNormalization}, Swish, \texttt{Dropout(0.30)}, and 7-class \texttt{Softmax}). Because pre-trained ImageNet weights could not be downloaded in the offline Kaggle session, the backbone was initialized with random weights (\texttt{weights = None}) and kept frozen (\texttt{trainable = False}), leaving 131,719 trainable head parameters out of 23,719,559 total parameters (90.48~MB). Consequently, this configuration evaluates fixed random convolutional projections rather than true ImageNet transfer learning.
+ResNet50 \cite{he2016deep} is our deep benchmark model. It uses identity skip connections so the gradients do not vanish across its 50 layers. We removed its top classification layers (\texttt{include\_top = False}) and added a small head (\texttt{GlobalAveragePooling2D}, \texttt{Dense(64)}, \texttt{BatchNormalization}, Swish, \texttt{Dropout(0.30)} and a 7-class \texttt{Softmax}). The ImageNet weights could not be downloaded in the offline Kaggle session. So the backbone started with random weights (\texttt{weights = None}) and was kept frozen (\texttt{trainable = False}). Only the 131,719 head parameters were trainable, out of 23,719,559 in total (90.48~MB). This means the test measures fixed random convolution filters, not real ImageNet transfer learning.
 
 \subsubsection{MobileNetV2 Architecture}
-MobileNetV2 \cite{sandler2018mobilenetv2, howard2017mobilenets} represents the standard mobile-efficient baseline, combining depthwise separable convolutions with inverted residual bottlenecks to reduce FLOPs. The same custom head was attached to the \texttt{include\_top = False} backbone (2,340,679 total parameters; 2,306,439 trainable). Because \texttt{weights = None} was used in the absence of ImageNet downloads, all backbone layers were set to \texttt{trainable = True} so that the model attempted to learn all filters from scratch on the 2,460 training images.
+MobileNetV2 \cite{sandler2018mobilenetv2, howard2017mobilenets} is the usual efficient model for phones. It uses depthwise separable convolutions with inverted residual bottlenecks to need fewer operations (FLOPs). We added the same kind of custom head to the backbone with \texttt{include\_top = False} (2,340,679 parameters in total, 2,306,439 trainable). We had no ImageNet weights here either, so we used \texttt{weights = None} and set all backbone layers to \texttt{trainable = True}. The model therefore tried to learn all its filters from zero on the 2,460 training images.
 
 \subsubsection{Training Optimization and Evaluation Protocol}
-All three models were compiled with the Adam optimizer (initial learning rate $0.001$) and Categorical Cross-Entropy loss with label smoothing ($\epsilon = 0.1$) to curb overconfident predictions. Training callbacks included \texttt{ModelCheckpoint} (saving the best validation-loss weights in \texttt{.keras} format), \texttt{EarlyStopping}, and \texttt{ReduceLROnPlateau}. Model performance on the 308 unseen test images was evaluated via Accuracy, Test Loss, Precision, Recall, F1-Score, Confusion Matrices, micro-average ROC-AUC, CPU inference latency (ms/image), and saved artifact size (MB) \cite{grandini2020metrics}.
+All three models use the Adam optimizer (starting learning rate $0.001$) and Categorical Cross-Entropy loss with label smoothing ($\epsilon = 0.1$), which stops the model from being too confident. During training we used three callbacks: \texttt{ModelCheckpoint} (it saves the weights with the best validation loss in \texttt{.keras} format), \texttt{EarlyStopping} and \texttt{ReduceLROnPlateau}. On the 308 unseen test images we measured accuracy, test loss, precision, recall, F1-score, confusion matrices, micro-average ROC-AUC, CPU inference time (ms per image) and the size of the saved file (MB) \cite{grandini2020metrics}.
 
 \subsection{Explanation of Different Modules}
 
 \subsubsection{Explainable AI Module (Grad-CAM)}
-To inspect the internal reasoning of the CNN and guard against ``black-box'' background shortcuts, Gradient-weighted Class Activation Mapping (Grad-CAM) \cite{selvaraju2017grad} was integrated on the final convolutional layer (\texttt{conv2d\_5}). Let $A^k \in \mathbb{R}^{u \times v}$ denote the $k$-th feature map activation of the target convolutional layer and $y^c$ be the pre-softmax score for predicted class $c$. The neuron importance weights $\alpha_k^c$ are obtained by global-average-pooling the class gradients across spatial locations $(i, j)$:
+We want to see what the CNN is looking at, and make sure it does not rely on the background. For this we added Gradient-weighted Class Activation Mapping (Grad-CAM) \cite{selvaraju2017grad} on the last convolutional layer (\texttt{conv2d\_5}). Let $A^k \in \mathbb{R}^{u \times v}$ be the $k$-th feature map of this layer, and let $y^c$ be the score of the predicted class $c$ before softmax. The weight $\alpha_k^c$ of each channel is the average of the class gradients over all positions $(i, j)$:
 \begin{equation}
 \alpha_k^c = \frac{1}{Z} \sum_{i} \sum_{j} \frac{\partial y^c}{\partial A_{ij}^k},
 \end{equation}
-where $Z = u \times v$. A weighted linear combination followed by a Rectified Linear Unit ($\text{ReLU}$) yields the coarse localization heatmap containing only features that positively support class $c$:
+where $Z = u \times v$. We add up the feature maps using these weights and apply a Rectified Linear Unit ($\text{ReLU}$). This gives a rough heatmap that keeps only the features that support class $c$:
 \begin{equation}
 L_{\text{Grad-CAM}}^c = \text{ReLU}\!\left(\sum_{k} \alpha_k^c A^k\right).
 \end{equation}
-The normalized heatmap is upsampled to $224 \times 224$ and blended onto the original leaf image so human reviewers can verify whether attention aligns with visible disease lesions or spurious background artifacts.
+We normalize the heatmap, resize it to $224 \times 224$ and blend it onto the original leaf photo. A person can then check whether the model looks at the visible lesions or at something wrong in the background.
 
 \subsubsection{LLM-Based Advisory Module}
-To bridge the gap between a raw classifier label and practical field guidance, the CNN output is connected to a Large Language Model (Google Gemini, model \texttt{gemini-3.1-flash-lite}) through the official \texttt{google-genai} Python SDK \cite{google2026gemini}:
-\begin{itemize}
-    \item \textbf{Classifier-to-LLM Context Handoff:} Only the predicted disease class name and numerical softmax confidence score are passed to the LLM prompt (both in the notebook pipeline via \texttt{get\_llm\_disease\_advice()} and \texttt{predict\_and\_explain()}, and in the web backend); raw leaf images are not transmitted to the external API.
-    \item \textbf{Structured Guidance and Multi-Turn Q\&A:} The module supports both structured disease briefings (covering \textit{Overview}, \textit{Symptoms}, \textit{Possible Causes}, \textit{Recommended Actions}, and \textit{Prevention}) and interactive multi-turn follow-up chat in Bengali and English so farmers can ask context-specific questions about their leaf condition.
-    \item \textbf{Safety Guardrails and Key Management:} Strict system instructions forbid inventing pesticide brand names or chemical dosages, require deferring to product labels and local agricultural extension services or crop advisors, prohibit claiming 100\% diagnostic certainty, and enforce a prominent low-confidence verification warning whenever model certainty is low. API credentials are stored securely in environment secrets (Kaggle Secrets / server environment variables) rather than hardcoded in source files.
-\end{itemize}
+A class name alone does not tell a farmer what to do in the field. So we connect the CNN output to a Large Language Model (Google Gemini, model \texttt{gemini-3.1-flash-lite}) through the official \texttt{google-genai} Python SDK \cite{google2026gemini}. The module works as follows.
+
+\textit{What is sent to the LLM.} Only the name of the predicted disease and the softmax confidence are put into the prompt. This is true in the notebook (through \texttt{get\_llm\_disease\_advice()} and \texttt{predict\_and\_explain()}) and in the web backend. The leaf photos are not sent to the outside API.
+
+\textit{Structured advice and chat.} The module writes a short disease brief with the parts \textit{Overview}, \textit{Symptoms}, \textit{Possible Causes}, \textit{Recommended Actions} and \textit{Prevention}. Farmers can also ask follow-up questions in Bengali or English about their own leaf.
+
+\textit{Safety rules and the API key.} The system prompt does not allow made-up pesticide brand names or chemical doses. It tells the model to point the farmer to product labels, local agricultural extension services or crop advisors, and never to claim 100\% certainty. When the model's confidence is low, a clear warning asks the farmer to check the result. The API key is stored in environment secrets (Kaggle Secrets or server environment variables), not written in the source code.
 
 \subsubsection{Web Application Module}
-To make the end-to-end diagnostic, explainability, and advisory pipeline accessible outside the research notebook, all system components are integrated into a deployed full-stack web application (\url{https://potato.mamunlab.com/}) built with a \textbf{FastAPI} backend (handling image preprocessing, Keras model inference, Grad-CAM heatmap generation, PDF/CSV report export, and Gemini API orchestration) and a responsive \textbf{React} frontend. The interface is organized into five core functional views with full \textbf{bilingual (English and Bengali)} localization, \textbf{Light/Dark theme} switching, and a persistent safety disclaimer (\textit{``AI-based preliminary classification---not a definitive diagnosis''}):
+To make the diagnosis, explanation and advice usable outside the research notebook, we put all parts together in a full-stack web application (\url{https://potato.mamunlab.com/}). The \textbf{FastAPI} backend handles image preprocessing, Keras model inference, Grad-CAM heatmaps, PDF/CSV reports and calls to the Gemini API. The \textbf{React} frontend adapts to phone screens. The app works in \textbf{English and Bengali}, can switch between \textbf{Light and Dark themes}, and always shows a safety note (\textit{``AI-based preliminary classification---not a definitive diagnosis''}). It has five main views:
 \begin{itemize}
-    \item \textbf{Detect View:} Accepts single potato leaf images via drag-and-drop, file upload (JPG/PNG up to 10~MB), or direct camera capture (\textit{Take a photo}) for mobile field use.
-    \item \textbf{Results View:} Displays the predicted condition, confidence percentage, top-class probability breakdown (with a \textit{Show all classes} toggle), side-by-side original image and Grad-CAM \textit{Attention overlay}, an experimental attention-level indicator (explicitly labeled as an experimental estimate rather than a validated severity percentage), and one-click actions to open the AI chat, view structured disease info, or download a \textbf{PDF report}.
-    \item \textbf{Batch Analysis View:} Processes up to 12 leaf images in a single batch (skipping Grad-CAM generation for faster throughput), summarizes Healthy vs.\ Diseased counts, lists each image's prediction, confidence, and Top-3 class probabilities, and exports the batch table via \textbf{Download CSV}.
-    \item \textbf{Chat View (Disease Assistant):} Automatically seeds an interactive Gemini conversation with the classifier's predicted class and confidence score, allowing farmers to ask follow-up questions in English or Bengali while enforcing agricultural safety disclaimers.
-    \item \textbf{Info View (Disease Information):} Presents structured, AI-generated disease reference cards (\textit{Overview}, \textit{Symptoms}, \textit{Possible causes}, \textit{Recommended actions}, and \textit{Prevention}) with a direct link to the AI assistant.
+    \item \textbf{Detect:} takes one potato leaf photo by drag and drop, file upload (JPG/PNG up to 10~MB) or the camera (\textit{Take a photo}) for use in the field.
+    \item \textbf{Results:} shows the predicted condition, the confidence, the probabilities of the top classes (with a \textit{Show all classes} switch) and the original photo next to the Grad-CAM \textit{Attention overlay}. It also has an experimental attention-level indicator, which is clearly labeled as an estimate and not a tested severity score. Buttons open the AI chat, show the disease information or download a \textbf{PDF report}.
+    \item \textbf{Batch Analysis:} checks up to 12 leaf photos at once (without Grad-CAM, to be faster). It counts Healthy and Diseased leaves, lists the prediction, confidence and top-3 class probabilities for each photo and exports the table with \textbf{Download CSV}.
+    \item \textbf{Chat (Disease Assistant):} starts a Gemini conversation with the predicted class and confidence already filled in. Farmers can ask more questions in English or Bengali, and the safety notes are always added.
+    \item \textbf{Info (Disease Information):} shows AI-written reference cards for the disease (\textit{Overview}, \textit{Symptoms}, \textit{Possible causes}, \textit{Recommended actions} and \textit{Prevention}), with a link to the AI assistant.
 \end{itemize}
 
 \clearpage

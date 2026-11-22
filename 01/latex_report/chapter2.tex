@@ -4,45 +4,46 @@
 \vspace{10mm}
 \section{Background Study}
 
-This chapter provides a comprehensive review of the existing literature and technological advancements in the field of automated plant disease detection. It begins by exploring traditional Machine Learning (ML) approaches dependent on manual feature extraction and moves towards the paradigm shift brought by Deep Learning (DL) and Convolutional Neural Networks (CNNs). The review specifically focuses on the application of Transfer Learning, the emerging need for Lightweight architectures for mobile deployment, and the critical role of Explainable AI (XAI) in building trust. Finally, a problem analysis is presented to identify the research gaps that this thesis aims to address.
+This chapter reviews earlier work on automatic plant disease detection. It starts with classic Machine Learning (ML) methods that need hand-made features. It then moves to Deep Learning (DL) and Convolutional Neural Networks (CNNs), which changed the field. We look in particular at transfer learning, small models for mobile phones and Explainable AI (XAI), which helps people trust a model. At the end, a problem analysis lists the gaps that this thesis tries to fill.
 
 \subsection{Literature Review}
 
 \subsubsection{Plant Pathology: Agricultural Context and Diagnostic Challenges}
-Plant diseases represent a significant threat to global food security and economic stability. Research by the Food and Agriculture Organization (FAO) indicates that plant pests and diseases reduce global crop yields by approximately 20--40\% annually \cite{strange2005plant}. The rapid spread of diseases and the similarity in visual symptoms make early detection particularly challenging yet critically important for sustainable agriculture.
+Plant diseases are a big risk to food security and to the economy. The Food and Agriculture Organization (FAO) reports that plant pests and diseases reduce world crop yields by about 20--40\% every year \cite{strange2005plant}. Diseases spread fast, and many of them look alike on the leaf. This makes early detection hard, but it is very important for farming.
 
-Traditional diagnostic methods have been extensively documented in agricultural literature. Visual inspection by experts remains the most common approach, relying on the identification of visible symptoms such as lesions, spots, or discoloration \cite{barbedo2018factors}. However, studies have highlighted limitations including human error, the scarcity of experts in rural areas, and the time-consuming nature of manual diagnosis. While biological laboratory tests provide accurate pathogen identification, they involve high costs and require specialized equipment \cite{fao2017future}.
+The usual ways of diagnosis are well described in farming studies. Most often an expert looks at the plant and checks for signs such as lesions, spots or color changes \cite{barbedo2018factors}. But studies point out problems with this: people make mistakes, there are few experts in rural areas and checking by hand takes a long time. Lab tests can identify the pathogen correctly, but they cost a lot and need special equipment \cite{fao2017future}.
 
-Recent agricultural studies emphasize the importance of precision farming protocols. Research demonstrates that timely intervention through targeted pesticide application can significantly reduce crop loss and environmental damage caused by chemical overuse \cite{savary2019global}. However, the implementation of widespread monitoring programs faces challenges including resource constraints and the lack of technological infrastructure in remote fields. The urgent need for accessible, accurate, and cost-effective screening tools has driven interest in automated diagnostic approaches utilizing Artificial Intelligence \cite{lecun2015deep}.
+Recent farming studies stress the value of precision farming. They show that acting in time, with pesticide only where it is needed, can cut crop loss and also reduce the harm from using too much chemical \cite{savary2019global}. However, large monitoring programs are hard to run, because resources are limited and remote fields lack technology. This is why there is strong interest in cheap, accurate and easy screening tools based on Artificial Intelligence \cite{lecun2015deep}.
 
 \subsubsection{Traditional Machine Learning Approaches}
-Before the deep learning era, researchers primarily utilized image processing techniques combined with classical classifiers. Methods such as Color Histograms, Scale Invariant Feature Transform (SIFT), and Gray-Level Co-occurrence Matrix (GLCM) were widely used to extract texture and shape features from leaves \cite{pujari2016image}. For example, Arivazhagan et al. used texture features to detect unhealthy regions in plants \cite{arivazhagan2013detection}. Similarly, Al-Hiary et al. proposed a system using K-Means clustering for segmentation and Neural Networks for classification \cite{alhiary2011fast}. While these methods laid the groundwork, they relied heavily on hand-crafted features, which often failed to generalize across complex backgrounds or large datasets \cite{ngugi2021recent}.
+Before deep learning, researchers mostly used image processing together with classic classifiers. Color histograms, Scale Invariant Feature Transform (SIFT) and Gray-Level Co-occurrence Matrix (GLCM) were common ways to get texture and shape features from leaves \cite{pujari2016image}. For example, Arivazhagan et al. used texture features to find unhealthy areas on plants \cite{arivazhagan2013detection}. Al-Hiary et al. built a system that used K-Means clustering for segmentation and a neural network for classification \cite{alhiary2011fast}. These methods were an important start. But they depended on hand-made features, and they often failed on busy backgrounds or large datasets \cite{ngugi2021recent}.
 
 \subsubsection{Deep Learning in Agriculture: Evolution and Applications}
-The application of deep learning to agricultural imaging has evolved dramatically over the past decade \cite{mohanty2016using}. Landmark studies in 2015--2016 established the viability of deep learning in plant pathology. The introduction of the PlantVillage dataset provided a standardized benchmark, enabling researchers to demonstrate that Convolutional Neural Networks (CNNs) could learn hierarchical feature representations from leaf images without manual feature engineering \cite{hughes2015open}.
+Deep learning for farm images has changed a lot in the last ten years \cite{mohanty2016using}. Key studies in 2015--2016 showed that deep learning can work for plant diseases. The PlantVillage dataset gave researchers a common benchmark. With it, they showed that CNNs can learn features from leaf images layer by layer, without any hand-made features \cite{hughes2015open}.
 
-Mohanty et al. (2016) conducted a baseline study using architectures like AlexNet and GoogLeNet on the PlantVillage dataset. They achieved accuracies exceeding 99\% but noted that performance dropped significantly when tested on images with different background conditions \cite{mohanty2016using}. Similarly, Sladojevic et al. (2016) developed a model for recognizing 13 different types of plant diseases, validating the potential of Deep Neural Networks (DNNs) in agriculture \cite{sladojevic2016deep}. Further advances led to deeper networks; Ferentinos (2018) experimented with VGG16, AlexNet, and GoogLeNet, concluding that VGG16 achieved the highest accuracy (99.53\%) but highlighted its high computational cost due to the massive number of parameters (~138 million) \cite{ferentinos2018deep}.
+Mohanty et al. (2016) tested AlexNet and GoogLeNet on PlantVillage. They got more than 99\% accuracy, but they also saw that accuracy dropped a lot on images with different backgrounds \cite{mohanty2016using}. Sladojevic et al. (2016) built a model that recognizes 13 types of plant disease, which showed that Deep Neural Networks (DNNs) are useful in farming \cite{sladojevic2016deep}. Later work used deeper networks. Ferentinos (2018) tried VGG16, AlexNet and GoogLeNet. VGG16 gave the best accuracy (99.53\%), but the author noted that it is very costly to run, because it has about 138 million parameters \cite{ferentinos2018deep}.
 
-Most of these studies used laboratory images with a plain background. To close this gap, Shabrina et al. (2024) published a potato leaf disease dataset collected in an uncontrolled field environment, with 3,076 images in 7 classes \cite{shabrina2024novel}. The images contain soil, hands, plastic mulch, shadows and other leaves, so the task is much harder than PlantVillage. This thesis uses this dataset.
+Most of these studies used lab photos with a plain background. To fix this, Shabrina et al. (2024) released a potato leaf disease dataset taken in the field, with 3,076 images in 7 classes \cite{shabrina2024novel}. The photos show soil, hands, plastic mulch, shadows and other leaves, so the task is much harder than PlantVillage. This thesis uses this dataset.
 
 \subsubsection{Transfer Learning and CNN Architectures}
-Transfer learning, where models pre-trained on large datasets like ImageNet are fine-tuned for specific tasks, has become the standard approach to overcome data scarcity \cite{pan2010survey}:
-\begin{itemize}
-    \item \textbf{ResNet (Residual Networks):} Introduced by He et al. (2016), ResNet utilizes ``skip connections'' to solve the vanishing gradient problem in deep networks \cite{he2016deep}. Studies utilizing ResNet50 for crop disease diagnosis have consistently reported high accuracy, making it a robust benchmark model \cite{brahimi2017deep}.
-    \item \textbf{MobileNetV2:} To address the computational constraints of mobile deployment, Sandler et al. (2018) proposed MobileNetV2. It uses Depthwise Separable Convolutions and inverted residuals to drastically reduce parameter count and latency \cite{sandler2018mobilenetv2}. While highly efficient, some studies suggest that MobileNet occasionally struggles with fine-grained disease patterns compared to deeper networks \cite{too2019comparative}.
-    \item \textbf{VGG and Inception:} Other architectures like VGG19 \cite{simonyan2015very} and InceptionV3 \cite{szegedy2016rethinking} have also been widely used. While VGG offers excellent precision, its large size renders it impractical for real-time mobile applications.
-\end{itemize}
+In transfer learning, a model trained on a large dataset such as ImageNet is fine-tuned for a new task. It is now the normal way to deal with small datasets \cite{pan2010survey}. Three model families matter for this work.
+
+\textit{ResNet (Residual Networks).} He et al. (2016) introduced ResNet. It uses ``skip connections'' to solve the vanishing gradient problem in deep networks \cite{he2016deep}. Studies that used ResNet50 for crop diseases have reported high accuracy again and again, so it is a good benchmark model \cite{brahimi2017deep}.
+
+\textit{MobileNetV2.} Sandler et al. (2018) proposed MobileNetV2 for phones and other small devices. It uses depthwise separable convolutions and inverted residuals, which cut the number of parameters and the delay by a large amount \cite{sandler2018mobilenetv2}. It is very efficient, but some studies found that it sometimes misses fine disease patterns that deeper networks can catch \cite{too2019comparative}.
+
+\textit{VGG and Inception.} VGG19 \cite{simonyan2015very} and InceptionV3 \cite{szegedy2016rethinking} are also widely used. VGG is very precise, but it is too large for real-time use on a phone.
 
 \subsubsection{Data Augmentation and Optimization Techniques}
-To improve model robustness and prevent overfitting, various optimization techniques are employed. Data Augmentation (rotation, flipping, zooming) is widely used to artificially expand the training dataset, helping models generalize better to unseen images \cite{shorten2019survey}. Regularization techniques such as Dropout, introduced by Srivastava et al., randomly deactivate neurons during training to prevent complex co-adaptations \cite{srivastava2014dropout}. Furthermore, Batch Normalization \cite{ioffe2015batch} and modern activation functions like Swish \cite{ramachandran2017swish} have been shown to accelerate convergence and improve accuracy in deep networks.
+Several methods help a model work on new images and stop it from overfitting. Data augmentation (rotation, flipping, zoom) creates more training images from the existing ones, so the model handles unseen images better \cite{shorten2019survey}. Dropout, proposed by Srivastava et al., turns off random neurons during training, so the neurons do not depend too much on each other \cite{srivastava2014dropout}. Batch Normalization \cite{ioffe2015batch} and newer activation functions such as Swish \cite{ramachandran2017swish} also help deep networks train faster and reach higher accuracy.
 
 \subsubsection{Explainable AI (XAI) and Model Transparency}
-One of the critical criticisms of deep learning in agriculture is the ``Black Box'' nature of CNNs. Farmers need to trust why a model predicts a certain disease. Selvaraju et al. (2017) introduced Grad-CAM (Gradient-weighted Class Activation Mapping) to visualize the regions of interest in an image \cite{selvaraju2017grad}. Recent studies have started incorporating Grad-CAM and interpretable ML techniques to validate that models are focusing on leaf lesions rather than background noise \cite{ryo2022explainable}. However, many proposed systems still lack this validation step, leaving their reliability in question.
+A common complaint about deep learning in farming is that a CNN is a ``black box''. Farmers need to know why a model predicts a certain disease. Selvaraju et al. (2017) proposed Grad-CAM (Gradient-weighted Class Activation Mapping), which shows the regions of the image that the model used \cite{selvaraju2017grad}. Newer studies have started to use Grad-CAM and other interpretable ML methods to check that the model looks at leaf lesions and not at background noise \cite{ryo2022explainable}. Still, many proposed systems skip this check, so we cannot be sure they are reliable.
 
 \subsubsection{Large Language Models in Agriculture}
-Large Language Models (LLMs) such as GPT and Gemini can generate natural-language explanations and answer questions \cite{google2026gemini}. In agriculture, they can turn a technical prediction into advice that a farmer can understand. However, LLMs can produce wrong or invented information, so their output must be limited by careful prompts and checked by experts. In this work, the LLM does not make the diagnosis; it only explains the class predicted by the CNN.
+Large Language Models (LLMs) such as GPT and Gemini can write explanations in normal language and answer questions \cite{google2026gemini}. In farming, they can turn a technical prediction into advice that a farmer understands. But LLMs can give wrong or made-up information. So their output must be limited by careful prompts and checked by experts. In this work the LLM does not make the diagnosis. It only explains the class that the CNN predicted.
 
-Table~\ref{tab:lit_summary} summarizes the key studies reviewed above, contrasting their dataset conditions, modeling techniques, reported performance, and remaining research gaps.
+Table~\ref{tab:lit_summary} sums up the main studies above. It compares their datasets, methods, results and the gaps that remain.
 
 \begin{table}[htbp]
 \caption{Summary of Key Literature in Plant Disease Detection}
@@ -53,32 +54,33 @@ Table~\ref{tab:lit_summary} summarizes the key studies reviewed above, contrasti
 \hline
 \textbf{Study} & \textbf{Dataset / Setting} & \textbf{Approach / Models} & \textbf{Reported Outcome} & \textbf{Key Gap Addressed in This Work} \\
 \hline
-Al-Hiary et al. (2011) \cite{alhiary2011fast} & Leaf images (controlled) & K-Means + Neural Networks & Effective segmentation baseline & Relies on hand-crafted features; sensitive to lighting and clutter. \\
+Al-Hiary et al. (2011) \cite{alhiary2011fast} & Leaf images (controlled) & K-Means + Neural Networks & Good segmentation baseline & Uses hand-made features; sensitive to light and clutter. \\
 \hline
-Arivazhagan et al. (2013) \cite{arivazhagan2013detection} & Leaf texture samples & Color/GLCM texture + SVM & Accurate on small curated sets & Manual feature extraction does not scale to complex backgrounds. \\
+Arivazhagan et al. (2013) \cite{arivazhagan2013detection} & Leaf texture samples & Color/GLCM texture + SVM & Accurate on small chosen sets & Manual features do not work on busy backgrounds. \\
 \hline
-Mohanty et al. (2016) \cite{mohanty2016using} & PlantVillage (lab plain background) & AlexNet, GoogLeNet & $>99\%$ on lab split & Sharp drop when tested on field/different background images. \\
+Mohanty et al. (2016) \cite{mohanty2016using} & PlantVillage (lab plain background) & AlexNet, GoogLeNet & $>99\%$ on lab split & Large drop when tested on field or other backgrounds. \\
 \hline
-Sladojevic et al. (2016) \cite{sladojevic2016deep} & 13 plant disease classes & Deep CNN (CaffeNet) & Validated end-to-end CNN & High resource demand; lacks XAI and actionable farmer advice. \\
+Sladojevic et al. (2016) \cite{sladojevic2016deep} & 13 plant disease classes & Deep CNN (CaffeNet) & Working end-to-end CNN & Needs many resources; no XAI and no advice for farmers. \\
 \hline
-Ferentinos (2018) \cite{ferentinos2018deep} & PlantVillage (58 classes) & VGG16, AlexNet, GoogLeNet & 99.53\% (VGG16) & $\sim 138$M parameters; too heavy for edge/mobile devices. \\
+Ferentinos (2018) \cite{ferentinos2018deep} & PlantVillage (58 classes) & VGG16, AlexNet, GoogLeNet & 99.53\% (VGG16) & $\sim 138$M parameters; too heavy for phones and edge devices. \\
 \hline
-Too et al. (2019) \cite{too2019comparative} & PlantVillage (fine-tuning) & VGG, ResNet, DenseNet, Inception & DenseNet-121 highest accuracy & Evaluated on lab data; no field-background or LLM advisory study. \\
+Too et al. (2019) \cite{too2019comparative} & PlantVillage (fine-tuning) & VGG, ResNet, DenseNet, Inception & DenseNet-121 highest accuracy & Lab data only; no field backgrounds and no LLM advice. \\
 \hline
-Ryo (2022) \cite{ryo2022explainable} & Agricultural data analysis (XAI review) & Post-hoc XAI \& interpretable ML & Synthesizes agricultural XAI methods & Highlights farmer trust deficit and need for lesion-grounded validation. \\
+Ryo (2022) \cite{ryo2022explainable} & Agricultural data analysis (XAI review) & Post-hoc XAI \& interpretable ML & Reviews XAI methods in farming & Shows farmers lack trust; heatmaps must be checked on lesions. \\
 \hline
-Shabrina et al. (2024) \cite{shabrina2024novel} & Potato Leaf (3,076 field images, 7 classes) & Benchmark uncontrolled field dataset & Realistic field benchmark & Severe class skew (11:1) and background clutter; no lightweight + XAI + LLM pipeline. \\
+Shabrina et al. (2024) \cite{shabrina2024novel} & Potato Leaf (3,076 field images, 7 classes) & Benchmark field dataset & Realistic field benchmark & Very uneven classes (11:1) and busy backgrounds; no small model + XAI + LLM pipeline. \\
 \hline
 \end{tabularx}
 \end{center}
 \end{table}
 
 \subsection{Problem Analysis}
-Based on the comprehensive literature review, several key issues and research gaps have been identified that motivate this thesis:
-\begin{itemize}
-    \item \textbf{Computational Inefficiency:} State-of-the-art models like VGG16 \cite{ferentinos2018deep} and ResNet50 \cite{he2016deep}, while accurate, are computationally heavy. They require significant memory and processing power, which are often unavailable in the low-end smartphones used by farmers in developing countries.
-    \item \textbf{The ``Accuracy vs. Efficiency'' Dilemma:} Existing lightweight models (like MobileNet) solve the size problem but sometimes struggle to capture fine-grained texture details of specific diseases compared to deeper networks \cite{kc2019depthwise, too2019comparative}. There is a need for a specialized architecture that bridges this gap---offering the speed of MobileNet with the precision of ResNet.
-    \item \textbf{Lack of Transparency (The Trust Deficit):} Most existing systems provide a simple text output (e.g., ``Healthy'' or ``Diseased''). Without visual evidence or explanation, these systems fail to build trust with human users. The integration of XAI is necessary to verify that the high accuracy is genuine and not a result of data bias \cite{ryo2022explainable, amara2017deep}.
-\end{itemize}
+From the review, we found three main problems that led to this thesis.
 
-\noindent \textbf{Conclusion of Analysis:} To solve these problems, this research proposes a four-part approach: (1) developing a Custom Lightweight CNN to minimize computational cost, (2) comparing it with ResNet50 and MobileNetV2 to benchmark performance, (3) using Grad-CAM to make the decisions transparent, and (4) adding an LLM advisory module to make the output useful for farmers.
+\textit{Too much computation.} Top models such as VGG16 \cite{ferentinos2018deep} and ResNet50 \cite{he2016deep} are accurate but heavy. They need a lot of memory and processing power. The cheap smartphones used by farmers in developing countries often do not have this.
+
+\textit{Accuracy or speed.} Small models such as MobileNet solve the size problem. But they sometimes miss fine texture details of some diseases that deeper networks can see \cite{kc2019depthwise, too2019comparative}. We need a model made for this task that is as fast as MobileNet and as precise as ResNet.
+
+\textit{No transparency.} Most systems only give a short text output, such as ``Healthy'' or ``Diseased''. Without any visual proof or explanation, people do not trust them. XAI is needed to check that high accuracy is real and does not come from bias in the data \cite{ryo2022explainable, amara2017deep}.
+
+\noindent \textbf{Conclusion of Analysis:} To solve these problems, this research uses four parts: (1) a small custom CNN to keep the computing cost low, (2) a comparison with ResNet50 and MobileNetV2 to measure its performance, (3) Grad-CAM to make the decisions visible, and (4) an LLM advice module to make the output useful for farmers.
