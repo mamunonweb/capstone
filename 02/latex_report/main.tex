@@ -4,6 +4,7 @@
 \usepackage[export]{adjustbox}
 
 \counterwithin{figure}{section}
+\counterwithin{table}{section}
 
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -45,6 +46,7 @@
     urlcolor=black
 }
 \renewcommand{\theHfigure}{\arabic{section}.\arabic{figure}}
+\renewcommand{\theHtable}{\arabic{section}.\arabic{table}}
 
 \usepackage[
     a4paper,
