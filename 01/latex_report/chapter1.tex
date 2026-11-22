@@ -17,7 +17,7 @@ Deep Learning has worked well in agriculture, but some problems still stop farme
 
 \textit{Speed against accuracy.} Small models such as MobileNet are faster, but they are often less accurate than large models. We need a custom model that is accurate and also cheap to run \cite{kc2019depthwise}.
 
-To deal with these problems, we design a small custom CNN with very few parameters. We compare it with ResNet50 and MobileNetV2 on real field photos. We add Explainable AI (XAI) so the decisions can be seen. We also add a Large Language Model (LLM) module that explains the predicted disease to the farmer in simple words.
+To deal with these problems, we build a compact fine-tuned MobileNetV2 model with a lean classification head (2.26 million parameters, 8.64~MB). We compare it with MultiNet-V3 Ensemble and InceptionV3 on real field photos. We add Explainable AI (XAI) so the decisions can be seen. We also add a Large Language Model (LLM) module that explains the predicted disease to the farmer in simple words.
 
 \subsection{Problem Background}
 The first automatic disease detection systems used classic Machine Learning methods, such as Support Vector Machines (SVM) and K-Nearest Neighbors (KNN), with hand-made features like color, texture and shape \cite{alhiary2011fast}. For example, Al-Hiary et al. used K-Means clustering to segment the leaf, and other studies used texture features such as GLCM \cite{pujari2016image, arivazhagan2013detection}. These methods did not work well with busy backgrounds or changing light.
@@ -27,10 +27,10 @@ Later, CNNs replaced these methods, because a CNN can learn the features by itse
 \subsection{Research Objectives}
 The main aim of this thesis is to build a deep learning system for plant disease detection that is fast and easy to understand. The specific objectives are:
 \begin{itemize}
-    \item To design a small custom CNN that sorts potato leaves into 7 classes (Bacteria, Fungi, Healthy, Nematode, Pest, Phytopthora and Virus, the same names as the class folders in the dataset), using the Potato Leaf Disease Dataset in Uncontrolled Environment. % \cite{shabrina2024novel}
-    \item To compare our custom model with ResNet50 (a large model) and MobileNetV2 (a small model) by accuracy, loss, precision, recall, F1-score, ROC-AUC, model size and inference speed.
+    \item To build and fine-tune a compact MobileNetV2 model (8.64~MB) that sorts potato leaves into 5 biological classes (Bacteria, Fungi, Healthy, Phytophthora and Virus) using our curated outdoor potato leaf dataset. % \cite{shabrina2024novel}
+    \item To compare our proposed MobileNetV2 model with MultiNet-V3 Ensemble (a heavy 3-backbone model) and InceptionV3 (a high-resolution CNN) by accuracy, loss, precision, recall, F1-score and model size.
     \item To use Explainable AI (XAI) with Gradient-weighted Class Activation Mapping (Grad-CAM) to show which parts of the leaf the model looks at, so we can check if the model is reliable. % \cite{selvaraju2017grad}
-    \item To connect a Large Language Model (Google Gemini) that turns the predicted class and confidence into simple advice for farmers, and to study the speed and size trade-offs for real use.
+    \item To connect a Large Language Model (Google Gemini) that turns the predicted class and confidence into simple advice for farmers inside a live bilingual web application.
 \end{itemize}
 
 \subsection{Motivations}
@@ -45,35 +45,35 @@ We wanted to give farmers technology that they can actually use. Three points dr
 \subsection{Significance of the Research}
 For agriculture, this study gives a complete pipeline for a diagnosis tool that works on real field photos and gives farmers simple advice through an LLM.
 
-For research, it gives an honest comparison of a small custom CNN and two standard models on a hard dataset taken in the field. It shows which training conditions matter most: pre-trained weights, a GPU and training time. It also shows why XAI results must be checked before we trust a model.
+For research, it gives a fair comparison of a compact fine-tuned MobileNetV2 model and two much larger models (MultiNet-V3 Ensemble and InceptionV3) on a hard outdoor field dataset. It shows that good training choices (pre-trained weights, frozen Batch Normalization during fine-tuning, class weights and a lean head) allow an 8.64~MB model to beat a 118.55~MB ensemble. It also checks the Grad-CAM maps on unseen leaves before we trust the model.
 
 There is also an economic benefit. Finding diseases early means less crop loss, which gives farmers higher yields and more income \cite{strange2005plant}.
 
 \subsection{Research Contributions}
 The main contributions of this thesis are:
 \begin{itemize}
-    \item \textbf{A small model.} We designed a custom CNN with Swish activation \cite{ramachandran2017swish}, Batch Normalization \cite{ioffe2015batch} and Global Average Pooling. It has only 162,887 parameters (about 1.98 MB), which is about 145 times fewer than ResNet50.
-    \item \textbf{A full comparison.} We compare the Custom CNN, ResNet50 and MobileNetV2 by accuracy, precision, recall, F1-score, confusion matrices, ROC curves, model size and inference time on 308 unseen test images.
-    \item \textbf{Grad-CAM for explanation.} We built a Grad-CAM pipeline that makes heatmaps from the last convolutional layer, and we report its current limits openly \cite{selvaraju2017grad}.
-    \item \textbf{An LLM advice module.} We connected the CNN output to the Google Gemini API with a safe prompt. The system gives disease information, steps to manage the disease and a warning when the confidence is low.
+    \item \textbf{A compact high-accuracy model.} We fine-tuned a MobileNetV2 model \cite{sandler2018mobilenetv2} with Global Average Pooling and a small 6,405-parameter head. It has 2,264,389 parameters (8.64~MB), which is $13.7\times$ smaller than MultiNet-V3 Ensemble, yet achieves 93.51\% test accuracy (0.9272 macro-F1).
+    \item \textbf{A fair 3-model comparison.} We compare our Proposed MobileNetV2, MultiNet-V3 Ensemble (90.91\%) and InceptionV3 (84.42\%) by accuracy, loss, per-class F1-score, confusion matrices and model size on the exact same 231 unseen test images.
+    \item \textbf{Grad-CAM for explanation.} We built a Grad-CAM pipeline on the final convolutional layer (\texttt{Conv\_1}) and confirmed that it focuses on real leaf lesions rather than soil or plastic mulch \cite{selvaraju2017grad}.
+    \item \textbf{An LLM advice module and live web app.} We connected the CNN output to the Google Gemini API with a safe prompt inside a live FastAPI and React web app (\url{https://potato.mamunlab.com/}). The system gives English and Bengali guidance without making up pesticide doses.
 \end{itemize}
 
 \subsection{Complex Engineering Analysis}
 In this part we look at the project as a complex engineering problem and at the engineering activities we carried out.
 
 \subsubsection{Complex Engineering Problems}
-This work deals with several linked problems in automatic potato leaf disease detection. The dataset has 3,076 field images in seven classes: Bacteria, Fungi, Healthy, Nematode, Pest, Phytopthora and Virus. The photos were taken in the field, not in a lab. They have busy backgrounds, different light, shadows and leaves facing different ways. This makes the task harder than lab image recognition. The classes are also uneven, so we had to split and prepare the data carefully to keep the same class mix in the training, validation and test sets.
+This work deals with several linked problems in automatic potato leaf disease detection. The curated dataset has 2,321 field images in five biological classes: Bacteria, Fungi, Healthy, Phytophthora and Virus. The photos were taken in the field, not in a lab. They have busy backgrounds, different light, shadows and leaves facing different ways. This makes the task harder than lab image recognition. The classes are also uneven (729 Fungi against 199 Healthy), and near-duplicate field photos can leak between splits, so we grouped similar images first and used class weights during training.
 
-Another problem was building and comparing models that need very different amounts of computing power. Our Custom CNN is designed to be simple, and ResNet50 and MobileNetV2 serve as benchmarks. We had little computing power and could not use pre-trained weights, which made training harder. The experiments ran on a CPU, so training was slow and we could run only a few epochs. Balancing accuracy, speed and model size was therefore a real engineering challenge.
+Another problem was building and comparing models of very different sizes. Our Proposed MobileNetV2 is compact (8.64~MB), while MultiNet-V3 Ensemble (118.55~MB) and InceptionV3 (85.18~MB) serve as heavy benchmarks. Fine-tuning deep models on a medium field dataset can cause training instability if Batch Normalization is unfrozen too early, so balancing accuracy, stability and model size was a real engineering challenge.
 
 The work also deals with the black-box problem of deep learning. A class label alone does not show which parts of the image led to the prediction. We added Grad-CAM to show the important regions of the leaf. Adding a Large Language Model also brought its own problems: calling the API, passing the prediction to the model, making sure the advice is reliable and keeping the farming advice responsible.
 
 \subsubsection{Complex Engineering Activities}
-We built a complete disease detection pipeline based on images. The dataset was arranged into seven classes and split into training, validation and test sets with stratified sampling at 80:10:10. Images were resized to $224 \times 224$ pixels and normalized. To help the model generalize, we augmented them with rotation, shifting, zoom and horizontal flips. We wrote the preprocessing in Python with TensorFlow/Keras, OpenCV and other image libraries.
+We built a complete disease detection pipeline based on images. The dataset was arranged into five classes, checked for near-duplicate photos and split into training (1,859), validation (231) and test (231) sets at 80:10:10. Images were resized to $224 \times 224$ pixels (or $299 \times 299$ for InceptionV3) and normalized. To help the model generalize, we augmented them with rotation, flips, zoom, shear and brightness changes. We wrote the preprocessing in Python with TensorFlow/Keras, OpenCV and other image libraries.
 
-We built and tested three models: our Custom Lightweight CNN, ResNet50 and MobileNetV2. The Custom CNN uses convolutional layers, Batch Normalization, Swish activation, Max Pooling, Dropout and Global Average Pooling. All models were trained and tested with the same data split and the same evaluation code. We measured accuracy, loss, precision, recall, F1-score, confusion matrices, ROC-AUC, inference time and model size.
+We built and tested three models on dual Kaggle T4 GPUs: our Proposed MobileNetV2, MultiNet-V3 Ensemble and InceptionV3. All models were trained and tested with the same data split and the same evaluation code. We measured accuracy, loss, precision, recall, F1-score, confusion matrices and model weight size.
 
 We also built Grad-CAM to show why the model made each prediction. We connected Google Gemini through its API to write a disease explanation, management steps and prevention tips from the predicted class and confidence score. The API key was kept safe in environment secrets. Finally, we put prediction, explanation and advice together in a web application built with FastAPI and React. The app supports image upload, camera capture, disease prediction, advice and downloadable reports. Together, these steps show how we used software engineering, machine learning, image processing and system integration to build a complete farm disease detection system.
 
 \subsection{Thesis Organization}
-The rest of this thesis is organized as follows. Chapter~2 (Background Study) looks at earlier work on plant disease detection, from classic ML to modern DL and XAI. Chapter~3 (Research Methodology) explains the proposed framework, the dataset and project requirements, the Custom CNN, ResNet50 and MobileNetV2 models, Grad-CAM and the LLM advice module. Chapter~4 (Implementation and Result Analysis) gives the results, including learning curves, confusion matrices, the model comparison, XAI images and the LLM output. Chapter~5 (Standards, Constraints, and Milestones) covers the sustainability and engineering standards we followed, the effect on society and the environment, ethics, and the problems and limits we faced. Chapter~6 (Conclusion) sums up the main findings, states the limits and suggests future work.
+The rest of this thesis is organized as follows. Chapter~2 (Background Study) looks at earlier work on plant disease detection, from classic ML to modern DL and XAI. Chapter~3 (Research Methodology) explains the proposed framework, the dataset and project requirements, the Proposed MobileNetV2, MultiNet-V3 Ensemble and InceptionV3 models, Grad-CAM and the LLM advice module. Chapter~4 (Implementation and Result Analysis) gives the results, including learning curves, confusion matrices, the model comparison, XAI images and the LLM output. Chapter~5 (Standards, Constraints, and Milestones) covers the sustainability and engineering standards we followed, the effect on society and the environment, ethics, and the problems and limits we faced. Chapter~6 (Conclusion) sums up the main findings, states the limits and suggests future work.

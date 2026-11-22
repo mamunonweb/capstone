@@ -5,32 +5,30 @@
 
 \section{Conclusion}
 
-The main aim of this research was to build a deep learning system that detects potato leaf diseases quickly, correctly and in a way people can understand. We built and compared three models (our Custom CNN, ResNet50 and MobileNetV2) on the Potato Leaf Disease Dataset in Uncontrolled Environment, which has 3,076 field images in 7 classes. We also added Grad-CAM for explanation and a Gemini LLM module that gives simple advice to farmers.
+The main aim of this research was to build a deep learning system that detects potato leaf diseases quickly, correctly and in a way people can understand. We built and compared three models (Proposed MobileNetV2, MultiNet-V3 Ensemble and InceptionV3) on our curated outdoor potato leaf dataset, which has 2,321 field images in 5 classes. We also added Grad-CAM for explanation, a Gemini LLM module that gives simple advice in English and Bengali, and a live web application (\url{https://potato.mamunlab.com/}).
 
-In the reported experiment, ResNet50 got the highest test accuracy (31.82\%, AUC 0.7688). MobileNetV2 got 24.35\% (AUC 0.6652), and the Custom CNN got 19.81\% (AUC 0.5889). The Custom CNN was by far the smallest model (162,887 parameters, 1.98 MB), and it was about 2.6 times faster than ResNet50. But the Custom CNN and MobileNetV2 predicted only one class for all test images. These results show that, with the current training setup (CPU only, 6 to 10 epochs, no ImageNet weights and an uneven field dataset), none of the models is accurate enough for real use.
+In the reported experiment on dual T4 GPUs, our Proposed MobileNetV2 got the highest test accuracy (93.51\%, macro-F1 0.9272, test loss 0.4466). MultiNet-V3 Ensemble got 90.91\% (macro-F1 0.8975), and InceptionV3 got 84.42\% (macro-F1 0.8296). Proposed MobileNetV2 was also by far the smallest model (2,264,389 parameters, 8.64~MB)---$13.7\times$ smaller than MultiNet-V3 (118.55~MB) and $9.9\times$ smaller than InceptionV3 (85.18~MB). It achieved 100\% recall on Bacterial Disease and Healthy leaves and 94\% recall on Phytophthora (Late Blight).
 
-We built and tested the Grad-CAM pipeline and the LLM advice module from start to end. The LLM followed its safety rules and warned the user about the low confidence. However, the Grad-CAM heatmaps were made without the trained weights, so they must be made again. To sum up, this work gives a complete pipeline that others can repeat (data handling, three models, testing, explanation and LLM advice), and it gives a clear and honest baseline. The next step is to retrain the models under better conditions, so the small model can be judged fairly.
+We verified the Grad-CAM pipeline on \texttt{Conv\_1} and confirmed that it highlights real leaf lesions while ignoring soil, hands and plastic mulch. The Gemini LLM followed all safety rules and gave clear English and Bengali steps without inventing pesticide doses. To sum up, this work delivers an accurate, compact, explainable and live potato leaf disease detection system ready for field use.
 
 \subsection{Limitations}
-The current system has some clear limits.
+The current system still has a few clear limits.
 
-\textit{Low accuracy.} The best test accuracy was 31.82\%, and two models predicted only one class. The models are not ready to be used.
+\textit{Small Healthy sample count.} Because Healthy has only 19 test images (8.6\% of the dataset), five mild early-stage Fungal leaves predicted as Healthy lowered Healthy precision to 0.79 even though recall was 100\%.
 
-\textit{Training setup.} Training ran on the CPU for only 6 to 10 epochs. ResNet50 and MobileNetV2 started with random weights, not ImageNet weights.
+\textit{Closed-set 5-class predictions.} A 5-class Softmax model always picks one of the 5 classes even if a non-leaf photo is uploaded; a non-leaf check should be added before classification.
 
-\textit{Explanation and advice not fully tested.} The Grad-CAM heatmaps were made with untrained weights, and the LLM advice was tested on only one image. Both parts need a full test with the final trained model and with farming experts.
+\textit{Internet needed for web and chat.} Although our 8.64~MB model is small enough for phones, the live web app and Gemini chat currently need a mobile internet connection.
 
-\textit{Small dataset and one crop.} The dataset is small (3,076 images, with only 68 Nematode images), and it covers only potato. Main crops such as rice, wheat and jute are not included.
+\textit{Single crop.} The current model covers potato leaves only. Other major crops such as tomato, rice and wheat are not yet included.
 
 \subsection{Future Works and Direction}
-To turn this research into a full farming product, we suggest the following next steps.
+To turn this research into a wider farming tool, we suggest the following next steps.
 
-\textit{Better training.} Retrain all models on a GPU with ImageNet pre-trained weights and more epochs. Fine-tune the upper layers of ResNet50 and MobileNetV2. Use class weights or oversampling to deal with the uneven classes.
+\textit{Mobile app that works offline.} Convert our 8.64~MB MobileNetV2 to INT8 TensorFlow Lite ($\sim 2.5$~MB) for a 100\% offline Android app in rural villages.
 
-\textit{Correct Grad-CAM test.} Rebuild the Grad-CAM model with the same architecture as the trained Custom CNN, load the trained weights and check whether the heatmaps point at the lesions.
+\textit{More local Bangladeshi field photos.} Collect multi-season potato leaf photos across Bogura, Munshiganj and Rangpur (especially Healthy and early-blight leaves) and add a non-leaf rejection check.
 
-\textit{Mobile app that works offline.} Convert the final model to TensorFlow Lite (TFLite) and build an Android app, so the diagnosis works without internet. The LLM advice can be shown when the phone is online.
+\textit{Expand to more crops.} Extend the same compact model and bilingual web platform to tomato, rice and wheat.
 
-\textit{Treatment advice from trusted sources.} Connect the LLM module to checked local farming guidelines (for example, by retrieving text from expert documents), so the advice is reliable and fits local conditions.
-
-\textit{Using more kinds of data.} To make the diagnosis more precise, we want to combine the images with other information such as weather, soil moisture and temperature. This would give a more complete smart farming assistant.
+\textit{Severity and weather alerts.} Pair leaf lesion area measurement with local humidity forecasts to give early Late Blight warnings grounded in local agricultural guidelines.

@@ -4,14 +4,14 @@
 \vspace{10mm}
 \section{Research Methodology}
 
-This chapter explains how we built the potato leaf disease detection and advice system, step by step. We follow the report format. First we give the full framework. Then we describe the dataset and the project requirements, including data collection, preprocessing and how the CNN selects features. After that we explain the three models (Custom Lightweight CNN, ResNet50 and MobileNetV2). Finally we explain the Grad-CAM module and the Gemini LLM advice module.
+This chapter explains how we built the potato leaf disease detection and advice system, step by step. We follow the report format. First we give the full framework. Then we describe the dataset and the project requirements, including data collection, preprocessing and how the CNN selects features. After that we explain the three models (Proposed MobileNetV2, MultiNet-V3 Ensemble and InceptionV3). Finally we explain the Grad-CAM module and the Gemini LLM advice module.
 
 \subsection{Proposed Framework}
 The system has four stages. It classifies the image, shows why it made the decision and gives safe advice in normal language. Figure~\ref{fig:workflow} shows the stages:
 \begin{enumerate}
-    \item \textbf{Data loading and preprocessing.} Field images from the 7-class dataset are split with stratified sampling ($80:10:10$) and resized to $224 \times 224 \times 3$. Training images are augmented on the fly. Each model then gets its own type of normalization.
-    \item \textbf{Classification with deep learning.} We train and test three CNN models with the same loss and the same metrics: our Custom Lightweight CNN, a frozen ResNet50 benchmark and a MobileNetV2 benchmark trained from scratch.
-    \item \textbf{Checking with Grad-CAM.} Gradient-weighted Class Activation Mapping (Grad-CAM) looks at the last convolutional layer. It shows whether the prediction comes from the real leaf lesions or from the background.
+    \item \textbf{Data loading and preprocessing.} Field images from our curated 5-class dataset (2,321 images) are checked for near-duplicate photos, split at $80:10:10$ (1,859 train, 231 validation, 231 test) and resized to $224 \times 224 \times 3$ (or $299 \times 299 \times 3$ for InceptionV3). Training images are augmented on the fly, and each model uses its own normalization.
+    \item \textbf{Classification with deep learning.} We train and test three CNN models on dual Kaggle T4 GPUs with the exact same split and metrics: our Proposed MobileNetV2 (8.64~MB), a heavy MultiNet-V3 Ensemble (118.55~MB) and an InceptionV3 benchmark (85.18~MB).
+    \item \textbf{Checking with Grad-CAM.} Gradient-weighted Class Activation Mapping (Grad-CAM) looks at the final convolutional layer (\texttt{Conv\_1} in MobileNetV2). It shows whether the prediction comes from the real leaf lesions or from the background.
     \item \textbf{LLM advice based on confidence.} The predicted disease and the softmax confidence are sent to Google Gemini (\texttt{gemini-3.1-flash-lite}) with strict safety rules. Gemini writes a simple summary of the symptoms, management steps and a warning when the confidence is low.
 \end{enumerate}
 
@@ -24,55 +24,51 @@ The system has four stages. It classifies the image, shows why it made the decis
 
 Before the full build, we checked whether the framework was feasible in three ways.
 
-\textit{Technical.} The pipeline uses well-known open-source Python libraries, mainly TensorFlow~2.20 and Keras \cite{abadi2016tensorflow}, in Kaggle cloud notebooks. Kaggle offers GPUs, but in the reported baseline run CUDA did not start (\texttt{failed call to cuInit}), so the code ran on the CPU. The CPU was enough to test the whole pipeline from start to end, but it limited how many epochs we could train.
+\textit{Technical.} The pipeline uses well-known open-source Python libraries, mainly TensorFlow and Keras \cite{abadi2016tensorflow}, in Kaggle cloud notebooks with dual NVIDIA Tesla T4 GPUs. This gives enough speed to train all three transfer-learning models to convergence.
 
 \textit{Operational.} After training, the system is easy to use. The user uploads a leaf photo and gets the predicted disease, the confidence, a Grad-CAM heatmap and advice from the LLM. Farmers and agricultural extension workers can use it without special skills.
 
 \textit{Economic.} All the main software (Python, TensorFlow, Scikit-learn, OpenCV, Jupyter and Kaggle Notebooks) is free and open source. The small custom model needs little hardware to run. The Gemini API is called only once per diagnosis, so the cost of the advice stays low.
 
 \subsection{Dataset Analysis and Project Requirements}
-We use the \textit{Potato Leaf Disease Dataset in Uncontrolled Environment} from Shabrina et al.\ \cite{shabrina2024novel}, which is available on Kaggle. Lab datasets such as PlantVillage \cite{hughes2015open} have plain backgrounds. This dataset is different. It has 3,076 color photos taken in the field, with soil, plastic mulch, hands, shadows and other leaves in the background. There are seven classes: six disease or pest classes and one healthy class. (\textit{Phytopthora} is the folder name used in the Kaggle dataset for \textit{Phytophthora} late blight, and we kept that spelling.)
+We use our curated outdoor potato leaf dataset on Kaggle (\texttt{potato-disease-dataset-03}), based on the field dataset of Shabrina et al.\ \cite{shabrina2024novel}. Lab datasets such as PlantVillage \cite{hughes2015open} have plain backgrounds. This dataset is different. It has 2,321 color photos taken in the field, with soil, plastic mulch, hands, shadows and other leaves in the background. There are five biological classes: four disease classes (Bacteria, Fungi, Phytophthora and Virus) and one Healthy class.
 
-Table~\ref{tab:class_dist} shows that the classes are very uneven. The largest class (\textit{Fungi}, 748 images) is about 11 times bigger than the smallest class (\textit{Nematode}, 68 images). The \textit{Healthy} class is also small (201 images). We had to handle this when splitting and testing the data. Otherwise a model could get a low loss just by predicting the large classes, and the result would be misleading.
+Table~\ref{tab:class_dist} shows that the classes are somewhat uneven. The largest class (\textit{Fungi}, 729 images) is about 3.66 times bigger than the smallest class (\textit{Healthy}, 199 images). We used class weights during training and macro-F1 for model selection so smaller classes like Healthy and Phytophthora were not ignored.
 
 \begin{table}[htbp]
-\caption{Dataset Classes and Distribution of the Potato Leaf Disease Dataset}
+\caption{Dataset Classes and Distribution of the Curated Potato Leaf Dataset}
 \label{tab:class_dist}
 \begin{center}
 \begin{tabularx}{0.9\textwidth}{| X | X | c | c |}
 \hline
 \textbf{Plant Name} & \textbf{Disease / Health Status} & \textbf{Number of Images} & \textbf{Share (\%)} \\
 \hline
-Potato & Fungi & 748 & 24.32\% \\
+Potato & Fungi (Fungal Disease) & 729 & 31.41\% \\
 \hline
-Potato & Pest & 611 & 19.86\% \\
+Potato & Bacteria (Bacterial Disease) & 566 & 24.39\% \\
 \hline
-Potato & Bacteria & 569 & 18.50\% \\
+Potato & Virus (Viral Disease) & 521 & 22.45\% \\
 \hline
-Potato & Virus & 532 & 17.30\% \\
+Potato & Phytophthora (Late Blight) & 306 & 13.18\% \\
 \hline
-Potato & Phytopthora & 347 & 11.28\% \\
+Potato & Healthy & 199 & 8.57\% \\
 \hline
-Potato & Healthy & 201 & 6.53\% \\
-\hline
-Potato & Nematode & 68 & 2.21\% \\
-\hline
-\textbf{Total Images} & \textbf{7 Classes} & \textbf{3,076} & \textbf{100.00\%} \\
+\textbf{Total Images} & \textbf{5 Classes} & \textbf{2,321} & \textbf{100.00\%} \\
 \hline
 \end{tabularx}
 \end{center}
 \end{table}
 
 \subsubsection{Data Collection and Preprocessing}
-We listed the image file paths and their folder labels in a Pandas DataFrame. We then split them with stratified sampling (\texttt{random\_state = 42}) at $80:10:10$ into training (2,460 images), validation (308 images) and unseen test (308 images) sets. This keeps the same share of each class in all three sets.
+Before splitting, we checked all 2,321 images with perceptual hashing ($\text{dHash} \le 10$) and grouped 38 near-duplicate clusters into 2,283 unique leaf groups so similar shots of the same leaf never split across training and testing. We then used \texttt{StratifiedGroupKFold} (seed 42) at $80:10:10$ to make training (1,859 images), validation (231 images) and unseen test (231 images) sets shared identically by all three models.
 
 Before the images go into the networks, we apply three preprocessing steps.
 
-\textit{Resizing.} The field photos have different sizes. We resize all of them to $224 \times 224 \times 3$ with \texttt{flow\_from\_dataframe}.
+\textit{Resizing.} The field photos have different sizes. We resize them to $224 \times 224 \times 3$ for Proposed MobileNetV2 and MultiNet-V3, and to $299 \times 299 \times 3$ for InceptionV3.
 
-\textit{Normalization for each model.} For the Custom CNN (Path~A), we divide the pixel values by $255.0$, so they go from $[0, 255]$ to $[0, 1]$. For ResNet50 and MobileNetV2 (Path~B), we use the Keras \texttt{preprocess\_input} function of each model. For ResNet50 this changes the channel order and subtracts the ImageNet mean. For MobileNetV2 it scales the values to $[-1, 1]$.
+\textit{Normalization for each model.} For Proposed MobileNetV2, a built-in Keras \texttt{Rescaling} layer scales pixels from $[0, 1]$ to $[-1, 1]$ directly inside the saved model. For MultiNet-V3 and InceptionV3, we use each backbone's standard Keras preprocessing.
 
-\textit{Augmentation during training.} To reduce overfitting and to handle leaves facing different ways, the training generator applies random rotation (up to $20^\circ$), width and height shifts (up to 20\%), random zoom (up to 20\%, filling with the nearest pixel) and horizontal flips \cite{shorten2019survey}.
+\textit{Augmentation during training.} To reduce overfitting and handle real farm lighting and camera angles, training images get random rotation (up to $30^\circ$), horizontal and vertical flips, random zoom (up to 20\%), shear (10\%) and brightness changes ($0.85$--$1.15$) \cite{shorten2019survey}.
 
 \subsubsection{Feature Selection and Representation}
 Classic plant disease pipelines pick features by hand. They use descriptors such as color histograms, Gray-Level Co-occurrence Matrix (GLCM) texture or Scale-Invariant Feature Transform (SIFT) keypoints \cite{alhiary2011fast, arivazhagan2013detection, pujari2016image}. In field photos with soil, plastic mulch, shadows and fingers, these simple features often cannot separate the background from small lesions on the leaf \cite{ngugi2021recent}.
@@ -88,38 +84,38 @@ In our pipeline the convolutional layers choose the features themselves, step by
 \subsubsection{Software and Hardware Project Requirements}
 We set the following requirements so the work can be repeated.
 
-\textit{Functional requirements.} The system must (i) accept normal RGB leaf images (JPG, PNG); (ii) resize and normalize each input for the chosen model; (iii) output one of the 7 potato classes with its softmax confidence; (iv) draw a Grad-CAM heatmap on the leaf to show the important regions \cite{selvaraju2017grad}; and (v) write advice for farmers through Gemini, with a clear warning when the confidence is low.
+\textit{Functional requirements.} The system must (i) accept normal RGB leaf images (JPG, PNG); (ii) resize and normalize each input for the chosen model; (iii) output one of the 5 potato classes with its softmax confidence; (iv) draw a Grad-CAM heatmap on the leaf to show the important regions \cite{selvaraju2017grad}; and (v) write advice for farmers through Gemini, with a clear warning when the confidence is low.
 
-\textit{Non-functional requirements.} The target is more than 95\% test accuracy for real use, fast inference (best under 100~ms per image for interactive use) and a modular design so new disease classes can be added later.
+\textit{Non-functional requirements.} The target is high test accuracy ($>90\%$) on real outdoor photos inside a compact model ($<10$~MB), fast web response and a modular design so new disease classes can be added later.
 
-\textit{Dataset requirements.} 3,076 labeled RGB field images in the 7 classes of the Kaggle potato dataset taken in uncontrolled conditions \cite{shabrina2024novel}.
+\textit{Dataset requirements.} 2,321 labeled RGB field images in 5 biological classes taken in uncontrolled conditions \cite{shabrina2024novel}.
 
-\textit{Hardware requirements (training and use).} For training, we planned a multi-core x86 CPU (Intel Core~i5, Ryzen~5 or a cloud vCPU), at least 16~GB RAM and an NVIDIA GPU with at least 12~GB VRAM for fast training. For use after training, a normal phone or laptop CPU with at least 4~GB RAM should be enough to run the small model.
+\textit{Hardware requirements (training and use).} For training, we used Kaggle dual NVIDIA Tesla T4 GPUs ($2 \times 16$~GB VRAM). For use after training, a normal phone browser or modest server CPU is enough to run our 8.64~MB model.
 
 \subsection{Algorithm and Model Analysis}
 
-\subsubsection{Proposed Custom Lightweight CNN}
-We designed the Custom Lightweight CNN to have as few parameters and as little memory use as possible, while it can still learn features layer by layer.
+\subsubsection{Proposed Compact Model (Fine-Tuned MobileNetV2)}
+Our proposed model uses an ImageNet-pretrained MobileNetV2 backbone \cite{sandler2018mobilenetv2} with depthwise separable convolutions and inverted residual blocks so parameter count stays low.
 
-\textit{Input layer.} It takes normalized RGB images of shape $(224, 224, 3)$.
+\textit{Input and backbone.} Normalized RGB photos of shape $(224, 224, 3)$ pass through a built-in \texttt{Rescaling} layer into the 154-layer MobileNetV2 backbone (2,257,984 parameters), producing a $(7, 7, 1280)$ feature map at \texttt{Conv\_1}.
 
-\textit{Convolution blocks.} There are three feature blocks, one after another. Each block has two $3 \times 3$ \texttt{Conv2D} layers. The number of filters grows from block to block ($16 \rightarrow 32$, $32 \rightarrow 64$ and $64 \rightarrow 128$). Each block also has \texttt{BatchNormalization} \cite{ioffe2015batch}, Swish activation \cite{ramachandran2017swish}, $2 \times 2$ \texttt{MaxPooling2D} and \texttt{Dropout} ($0.20$, $0.20$ and $0.25$) \cite{srivastava2014dropout}.
+\textit{Small classifier head.} A \texttt{GlobalAveragePooling2D} layer turns the $(7, 7, 1280)$ feature map into 1,280 values, followed directly by \texttt{Dropout(0.25)} and a 5-unit \texttt{Softmax} layer (only 6,405 head parameters). The whole network has 2,264,389 parameters (8.64~MB of float32 weights).
 
-\textit{Small classifier head.} A \texttt{GlobalAveragePooling2D} layer turns the $(28, 28, 128)$ feature map into 128 values. Then come a 128-unit \texttt{Dense} layer, \texttt{BatchNormalization}, Swish, \texttt{Dropout(0.40)} and a 7-unit \texttt{Softmax} output layer. The network has 162,887 parameters in total (161,959 trainable). The raw weights take 636.28~KB, and the saved file is 1.98~MB.
+\textit{Two-stage fine-tuning.} In Stage~1 we train only the 6,405-parameter head with the backbone frozen and restore the best validation checkpoint (Epoch~6). In Stage~2 we unfreeze the top 54 layers while keeping all Batch Normalization layers frozen, using AdamW with weight decay $10^{-4}$ and label smoothing $0.05$.
 
-\subsubsection{ResNet50 Architecture}
-ResNet50 \cite{he2016deep} is our deep benchmark model. It uses identity skip connections so the gradients do not vanish across its 50 layers. We removed its top classification layers (\texttt{include\_top = False}) and added a small head (\texttt{GlobalAveragePooling2D}, \texttt{Dense(64)}, \texttt{BatchNormalization}, Swish, \texttt{Dropout(0.30)} and a 7-class \texttt{Softmax}). The ImageNet weights could not be downloaded in the offline Kaggle session. So the backbone started with random weights (\texttt{weights = None}) and was kept frozen (\texttt{trainable = False}). Only the 131,719 head parameters were trainable, out of 23,719,559 in total (90.48~MB). This means the test measures fixed random convolution filters, not real ImageNet transfer learning.
+\subsubsection{MultiNet-V3 Ensemble Architecture}
+MultiNet-V3 Ensemble is our heavy benchmark model. It runs three pre-trained ImageNet backbones in parallel---EfficientNetB0 \cite{tan2019efficientnet}, MobileNetV2 \cite{sandler2018mobilenetv2} and ResNet50 \cite{he2016deep}---and joins their spatial grids into a single $(7, 7, 4608)$ feature tensor (\texttt{ensemble\_spatial\_features}). We add \texttt{GlobalAveragePooling2D}, \texttt{Dense(256)}, \texttt{BatchNormalization}, Swish, \texttt{Dropout(0.5)} and a 5-class \texttt{Softmax} head. It has 31,076,713 parameters in total (118.55~MB, $13.7\times$ larger than our Proposed MobileNetV2).
 
-\subsubsection{MobileNetV2 Architecture}
-MobileNetV2 \cite{sandler2018mobilenetv2, howard2017mobilenets} is the usual efficient model for phones. It uses depthwise separable convolutions with inverted residual bottlenecks to need fewer operations (FLOPs). We added the same kind of custom head to the backbone with \texttt{include\_top = False} (2,340,679 parameters in total, 2,306,439 trainable). We had no ImageNet weights here either, so we used \texttt{weights = None} and set all backbone layers to \texttt{trainable = True}. The model therefore tried to learn all its filters from zero on the 2,460 training images.
+\subsubsection{InceptionV3 Architecture}
+InceptionV3 \cite{szegedy2016rethinking} is our high-resolution single-backbone benchmark. It takes larger $299 \times 299 \times 3$ images and uses parallel multi-scale filters ($1\times 1$, $3\times 3$ and factorized $5\times 5$) to output an $(8, 8, 2048)$ tensor at \texttt{conv2d\_93}. We add the same 256-unit Swish classification head (\texttt{GAP}, \texttt{Dense(256)}, \texttt{BN}, Swish, \texttt{Dropout(0.5)}, \texttt{Softmax(5)}), giving 22,328,869 parameters in total (85.18~MB, $9.9\times$ larger than our Proposed MobileNetV2).
 
 \subsubsection{Training Optimization and Evaluation Protocol}
-All three models use the Adam optimizer (starting learning rate $0.001$) and Categorical Cross-Entropy loss with label smoothing ($\epsilon = 0.1$), which stops the model from being too confident. During training we used three callbacks: \texttt{ModelCheckpoint} (it saves the weights with the best validation loss in \texttt{.keras} format), \texttt{EarlyStopping} and \texttt{ReduceLROnPlateau}. On the 308 unseen test images we measured accuracy, test loss, precision, recall, F1-score, confusion matrices, micro-average ROC-AUC, CPU inference time (ms per image) and the size of the saved file (MB) \cite{grandini2020metrics}.
+All three models use ImageNet pre-trained weights, two-stage fine-tuning, class weights to balance smaller classes and label-smoothed Categorical Cross-Entropy loss, with \texttt{ModelCheckpoint}, \texttt{EarlyStopping} and \texttt{ReduceLROnPlateau}. On the 231 unseen test images we measure accuracy, test loss, precision, recall, macro and weighted F1-score, confusion matrices and model weight size (MB) \cite{grandini2020metrics}.
 
 \subsection{Explanation of Different Modules}
 
 \subsubsection{Explainable AI Module (Grad-CAM)}
-We want to see what the CNN is looking at, and make sure it does not rely on the background. For this we added Gradient-weighted Class Activation Mapping (Grad-CAM) \cite{selvaraju2017grad} on the last convolutional layer (\texttt{conv2d\_5}). Let $A^k \in \mathbb{R}^{u \times v}$ be the $k$-th feature map of this layer, and let $y^c$ be the score of the predicted class $c$ before softmax. The weight $\alpha_k^c$ of each channel is the average of the class gradients over all positions $(i, j)$:
+We want to see what the CNN is looking at, and make sure it does not rely on the background. For this we added Gradient-weighted Class Activation Mapping (Grad-CAM) \cite{selvaraju2017grad} on the final convolutional layer (\texttt{Conv\_1} for Proposed MobileNetV2). Let $A^k \in \mathbb{R}^{u \times v}$ be the $k$-th feature map of this layer, and let $y^c$ be the score of the predicted class $c$ before softmax. The weight $\alpha_k^c$ of each channel is the average of the class gradients over all positions $(i, j)$:
 \begin{equation}
 \alpha_k^c = \frac{1}{Z} \sum_{i} \sum_{j} \frac{\partial y^c}{\partial A_{ij}^k},
 \end{equation}

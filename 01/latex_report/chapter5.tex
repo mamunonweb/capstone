@@ -23,7 +23,7 @@ Automatic crop disease screening that can explain itself supports farming in a s
 \hline
 SDG 2 & Zero Hunger & Early diagnosis of potato diseases in the field (such as late blight caused by \textit{Phytophthora infestans}, and fungal, bacterial and viral infections) helps small farmers lose less of their crop and improves food security. \\
 \hline
-SDG 9 & Industry, Innovation, and Infrastructure & A small CNN with 162,887 parameters can run on cheap smartphones, and the open-source pipeline can be repeated by anyone. \\
+SDG 9 & Industry, Innovation, and Infrastructure & A compact MobileNetV2 model (2.26M parameters, 8.64~MB) runs fast on low-cost servers and is ready for offline smartphones, and the open-source pipeline can be repeated by anyone. \\
 \hline
 SDG 12 & Responsible Consumption and Production & Finding the exact disease, together with safe LLM advice, helps farmers avoid spraying the whole field. They waste less chemical and use their inputs better. \\
 \hline
@@ -42,7 +42,7 @@ We also followed engineering and testing standards during the whole project.
 
 \textit{Data license.} The dataset comes from a public Kaggle repository. We use it only for study and research, as the authors' license allows \cite{shabrina2024novel}.
 
-\textit{Testing standard.} We used the standard machine learning metrics: accuracy, precision, recall, macro and weighted F1-score, confusion matrix and ROC-AUC. They were computed on a 10\% test split ($N = 308$) that was kept apart from training, with a fixed random seed ($42$), so the results can be repeated \cite{grandini2020metrics}.
+\textit{Testing standard.} We used standard machine learning metrics: accuracy, precision, recall, macro and weighted F1-score and confusion matrices. They were computed on a 10\% leak-aware test split ($N = 231$) that was kept apart from training, with a fixed random seed ($42$), so the results can be repeated \cite{grandini2020metrics}.
 
 \subsection{Impacts on Society}
 An automatic plant disease detector can affect society in several ways, especially in farming.
@@ -56,31 +56,31 @@ An automatic plant disease detector can affect society in several ways, especial
 \subsection{Ethics}
 Using AI in farming brings some ethical duties. We dealt with them as follows.
 
-\textit{Bias in the data.} The classes are uneven (748 Fungi images against 68 Nematode images). Our results show that this bias is real, because two models predicted only one class. To lower this risk we used a stratified split and data augmentation, and we plan to add class weights in future training.
+\textit{Bias in the data.} The classes are somewhat uneven (729 Fungi images against 199 Healthy images). To lower this risk we used a leak-aware grouped split, data augmentation and class weights during training, and selected checkpoints by macro-F1.
 
-\textit{Risk of a wrong diagnosis (false negatives).} If we tell a farmer that a sick plant is healthy, or name the wrong disease, the farmer may lose the crop. We used label smoothing so the model is less over-confident, and the LLM is told to warn the user when the confidence is low. The current models must not be used for real decisions until their accuracy has been tested and is good enough.
+\textit{Risk of a wrong diagnosis (false negatives).} If we tell a farmer that a sick plant is healthy, or name the wrong disease, the farmer may lose the crop. We used label smoothing so the model is less over-confident, show Grad-CAM overlays for visual checking, and display a clear reminder that the AI gives screening support rather than a final lab diagnosis.
 
-\textit{Privacy and careful use of the LLM.} The dataset has no personal data. The Gemini API key is kept in Kaggle Secrets, not in the code. Only the predicted class and the confidence are sent to the LLM, not the image, and the prompt does not allow made-up pesticide doses.
+\textit{Privacy and careful use of the LLM.} The dataset has no personal data. The Gemini API key is kept in environment secrets, not in the code. Only the predicted class and the confidence are sent to the LLM, not the image, and the prompt does not allow made-up pesticide doses.
 
 \subsection{Challenges}
 We met three big problems during the research.
 
-\textit{Very uneven classes.} The dataset has a ratio of about 11:1 between the largest and the smallest class. Training on it made the models favor the large classes (Pest and Fungi). We used a stratified split and augmentation, but stronger methods such as class weights or oversampling are still needed.
+\textit{Uneven classes and near-duplicate photos.} Healthy leaves make up only 8.6\% of the dataset, and field photos often contain burst shots of the same leaf. Grouping near-duplicates with perceptual hashing ($\text{dHash} \le 10$) and using class weights solved both problems.
 
-\textit{Busy backgrounds and similar symptoms.} The photos show soil, hands, plastic mulch and other plants. Different problems, for example Fungi and Phytopthora, can also show similar brown lesions. This makes the task much harder than with lab datasets.
+\textit{Busy backgrounds and similar symptoms.} The photos show soil, hands, plastic mulch and other plants. Different diseases, for example Fungi and Phytophthora, can also show similar brown lesions. This makes the task much harder than with lab datasets.
 
-\textit{Hardware limits.} In the reported run, the GPU could not start, so all models were trained on the CPU (about 4 to 9 minutes per epoch). This limited training to 6 to 10 epochs. The ImageNet weights were also not downloaded, so ResNet50 and MobileNetV2 could not use transfer learning.
+\textit{Fine-tuning stability on a medium dataset.} Unfreezing Batch Normalization layers during fine-tuning caused a sharp validation-loss spike in our early run. Keeping Batch Normalization frozen in Stage~2 with AdamW removed the spike and lifted accuracy from 91.34\% to 93.51\%.
 
 \subsection{Constraints}
 Every research project has practical limits on technology, parts and money. Our main limits were these.
 
-\textit{Design limits.} The model takes a fixed $224 \times 224 \times 3$ RGB input. The Custom CNN had to stay small ($\le 2$~MB), so we used \texttt{GlobalAveragePooling2D} to keep it phone-friendly. Its last convolutional layer (\texttt{conv2d\_5}) had to work with Grad-CAM. The model only sorts leaves into the 7 potato classes. The LLM prompt only allows advice: no diagnosis claims and no doses.
+\textit{Design limits.} The model takes a fixed $224 \times 224 \times 3$ RGB input. Our proposed MobileNetV2 had to stay under 10~MB (8.64~MB weights) and expose its final convolutional layer (\texttt{Conv\_1}) for Grad-CAM. It classifies 5 potato leaf classes, and the LLM prompt forbids invented doses.
 
-\textit{Component limits.} The dataset has 3,076 field images with an $11:1$ class ratio (only 68 Nematode images), which is too little to learn deep features from zero. In the Kaggle session, offline limits stopped us from downloading the ImageNet weights for ResNet50 and MobileNetV2. A mismatch in TensorFlow/Keras model saving also broke the loading of the Grad-CAM weights. In addition, the advice module needs the outside Google Gemini API and an internet connection, and in rural farm areas the connection may drop.
+\textit{Component limits.} The dataset has 2,321 field images (with 19 Healthy test samples), so a few mild fungal false positives still lower Healthy precision to 0.79. Also, the advice module needs the outside Google Gemini API and an internet connection, which can be unstable in rural farm areas.
 
-\textit{Budget limits.} This was a student capstone project with no outside funding. We used only the free Kaggle computing and open-source software. We had no paid GPU cluster and no money to collect our own field data. When the CUDA GPU did not start in the reported session, the CPU (about 4 to 9 minutes per epoch) allowed only 6 to 10 epochs at $224 \times 224$ resolution. For the advice, \texttt{gemini-3.1-flash-lite} is called once per prediction to stay inside the free or low-cost API limits.
+\textit{Budget limits.} This was a student capstone project with no outside funding. We used only free Kaggle dual-T4 GPU quotas and open-source software, and called \texttt{gemini-3.1-flash-lite} once per request to stay within low-cost API limits.
 
-\textit{Operational and legal limits.} The reported baseline reached only 31.82\% accuracy, and two models predicted only one class. So it would not be responsible to use these checkpoints for real farming decisions. They must first be retrained on a GPU with pre-trained weights and checked by experts.
+\textit{Operational and legal limits.} Even at 93.51\% accuracy, AI screening is not a replacement for certified plant pathologists. Our web interface clearly marks every result as preliminary guidance and advises consulting local agricultural officers when uncertain.
 
 \subsection{Timeline and Gantt Chart}
 We had six months to finish this research, so we made a clear work plan. The project had two phases: Phase I (planning and design) and Phase II (building and analysis). Figure~\ref{fig:gantt1} and Figure~\ref{fig:gantt2} show the tasks and their timing as Gantt charts.
@@ -90,8 +90,8 @@ In the first phase we studied the background and prepared what we needed for the
 \begin{itemize}
     \item \textbf{Weeks 1--2:} We read earlier studies to find the gaps in current plant disease detection methods.
     \item \textbf{Weeks 3--5:} We collected the Potato Leaf Disease (Uncontrolled Environment) dataset and explored it (EDA) to understand the class counts.
-    \item \textbf{Weeks 6--10:} We designed our Custom Lightweight CNN and set up the preprocessing (normalization and augmentation).
-    \item \textbf{Weeks 11--13:} We chose and set up the transfer learning models (ResNet50 and MobileNetV2) and finished the research method.
+    \item \textbf{Weeks 6--10:} We designed our Proposed MobileNetV2 model and set up the leak-aware split, normalization and augmentation.
+    \item \textbf{Weeks 11--13:} We chose and set up the benchmark models (MultiNet-V3 Ensemble and InceptionV3) and finished the research method.
 \end{itemize}
 
 \begin{figure}[htbp]
@@ -104,9 +104,9 @@ In the first phase we studied the background and prepared what we needed for the
 \subsubsection{Phase II: Implementation, Testing, and Documentation (Weeks 14--26)}
 In the second phase we built and tested the system and wrote up the results. As Figure~\ref{fig:gantt2} shows, this phase took the last three months (Weeks 14 to 26):
 \begin{itemize}
-    \item \textbf{Weeks 14--17:} We trained the three models (Custom CNN, ResNet50 and MobileNetV2) and tuned their hyperparameters to improve accuracy.
-    \item \textbf{Weeks 18--21:} We compared the models by accuracy, loss and inference speed. We also built the Explainable AI part (Grad-CAM) and the Gemini LLM advice module in this period.
-    \item \textbf{Weeks 22--26:} We finished the results, plotted the metrics (confusion matrix, ROC curves) and wrote the full thesis. At the end, we prepared for the final defense presentation.
+    \item \textbf{Weeks 14--17:} We trained the three models (Proposed MobileNetV2, MultiNet-V3 Ensemble and InceptionV3) on Kaggle dual T4 GPUs and tuned them to improve accuracy.
+    \item \textbf{Weeks 18--21:} We compared the models by accuracy, loss, F1-score and model size. We also built the Explainable AI part (Grad-CAM), the Gemini LLM advice module and the live web application.
+    \item \textbf{Weeks 22--26:} We finished the results, plotted the metrics (confusion matrices, comparison charts) and wrote the full thesis. At the end, we prepared for the final defense presentation.
 \end{itemize}
 
 \begin{figure}[htbp]

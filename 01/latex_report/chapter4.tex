@@ -7,7 +7,7 @@
 
 This chapter shows how we built and tested the plant disease detection system. Chapter~3 gave the plan and the method. Here we describe what we actually did, from setting up the tools to checking the final results.
 
-The main goal is to test our Custom Lightweight CNN against two well-known models, ResNet50 and MobileNetV2. We start with the computing setup. Then we describe the preprocessing and augmentation of the Potato Leaf Disease Dataset in Uncontrolled Environment. Next we describe how each model was trained, with the callbacks Early Stopping, ReduceLROnPlateau and ModelCheckpoint. We test the trained models on unseen images and report accuracy, precision, recall, F1-score, confusion matrices and ROC curves. We also show the Grad-CAM results and the output of the LLM advice module. All numbers in this chapter come straight from the output of the experiment notebook.
+The main goal is to test our Proposed MobileNetV2 against two heavy benchmark models, MultiNet-V3 Ensemble and InceptionV3. We start with the computing setup. Then we describe the preprocessing and augmentation of our curated outdoor potato leaf dataset. Next we describe how each model was trained, with the callbacks Early Stopping, ReduceLROnPlateau and ModelCheckpoint. We test the trained models on unseen images and report accuracy, precision, recall, F1-score and confusion matrices. We also show the Grad-CAM results and the output of the LLM advice module. All numbers in this chapter come straight from the output of the Kaggle experiment notebooks.
 
 \subsection{Environment Setup}
 Deep learning needs the right computing setup. This section lists the software, tools and hardware we used to build, train and test the models.
@@ -18,7 +18,7 @@ We wrote the code in Python. TensorFlow 2.20.0 was the deep learning framework, 
 The code ran in a Jupyter Notebook on Kaggle. We installed the \texttt{google-genai} library to connect the trained model to the Gemini API. \texttt{ModelCheckpoint} saved the best model of each run in the Keras format (\texttt{.keras}), so we could load it later for testing.
 
 \subsubsection{Hardware and Software Configuration}
-Kaggle gives free GPUs. But the training log of the reported run shows the message ``failed call to cuInit: CUDA error''. This means the GPU did not work, so all training ran on the CPU. Because of this, one epoch of the Custom CNN took about 520 seconds. Table~\ref{tab:hw_sw} lists the setup.
+All three models were trained on Kaggle using dual NVIDIA Tesla T4 GPUs ($2 \times 16$~GB VRAM) under \texttt{tf.distribute.MirroredStrategy}. This gave enough computing power to fine-tune all three models to convergence with fixed random seed 42. Table~\ref{tab:hw_sw} lists the setup.
 
 \begin{table}[htbp]
 \caption{Hardware and Software Configuration}
@@ -32,17 +32,15 @@ Operating System & Linux (Kaggle Notebook kernel) \\
 \hline
 Platform & Kaggle cloud notebook \\
 \hline
-GPU (Graphics Processing Unit) & Not active in this run (CUDA initialization failed) \\
+GPU (Graphics Processing Unit) & $2 \times$ NVIDIA Tesla T4 (16~GB VRAM each, \texttt{MirroredStrategy}) \\
 \hline
-Processor Used & Kaggle cloud CPU \\
-\hline
-Batch Size / Image Size & $32$ / $224 \times 224 \times 3$ \\
+Batch Size / Image Size & $32$ / $224 \times 224 \times 3$ (MobileNetV2, MultiNet-V3) and $299 \times 299 \times 3$ (InceptionV3) \\
 \hline
 Programming Language & Python 3 \\
 \hline
-Deep Learning Framework & TensorFlow 2.20.0, Keras \cite{abadi2016tensorflow} \\
+Deep Learning Framework & TensorFlow, Keras \cite{abadi2016tensorflow} \\
 \hline
-Key Libraries & NumPy 2.0.2, Pandas, Matplotlib, Seaborn, Scikit-learn, OpenCV, \texttt{google-genai} \\
+Key Libraries & NumPy, Pandas, Matplotlib, Seaborn, Scikit-learn, OpenCV, \texttt{google-genai} \\
 \hline
 \end{tabularx}
 \end{center}
@@ -51,28 +49,28 @@ Key Libraries & NumPy 2.0.2, Pandas, Matplotlib, Seaborn, Scikit-learn, OpenCV, 
 \subsection{Data Preprocessing}
 
 \subsubsection{Dataset Description and Class Distribution}
-We use the Potato Leaf Disease Dataset in Uncontrolled Environment \cite{shabrina2024novel}. It has 3,076 color photos of potato leaves taken in real fields. The photos are in 7 classes: six kinds of problems (Bacteria, Fungi, Nematode, Pest, Phytopthora and Virus) and one Healthy class.
+We use our curated outdoor potato leaf dataset on Kaggle (\texttt{potato-disease-dataset-03}), based on the field dataset of Shabrina et al.\ \cite{shabrina2024novel}. It has 2,321 color photos of potato leaves taken in real fields. The photos are in 5 biological classes: four diseases (Bacteria, Fungi, Phytophthora and Virus) and one Healthy class.
 
-\textbf{Main finding: the classes are uneven.} Table~\ref{tab:class_dist} showed that Fungi is the largest class with 748 images (24.32\%), and Nematode has only 68 images (2.21\%). The largest class is about 11 times bigger than the smallest. The Healthy class is also small (201 images, 6.53\%). This makes training harder, because a model can get a lower loss just by choosing the large classes more often.
+\textbf{Main finding: the classes are moderately uneven.} Table~\ref{tab:class_dist} showed that Fungi is the largest class with 729 images (31.41\%), and Healthy is the smallest with 199 images (8.57\%, a 3.66:1 ratio). We used capped inverse-frequency class weights during training so smaller classes like Healthy and Phytophthora were learned accurately.
 
 \subsubsection{Exploratory Data Analysis (EDA)}
-Before training, we explored the dataset to understand it better. This helped us find possible bias, learn about the images and decide what preprocessing we needed.
+Before training, we explored the dataset to understand it better. This helped us check for near-duplicate photos and decide what preprocessing we needed.
 
-\textbf{Looking at samples.} We displayed random images from different classes to see how varied the dataset is. Figure~\ref{fig:samples} shows that these are real field photos. The background has soil, plastic mulch, hands and other leaves. The disease signs (brown lesions, holes made by pests, yellow areas and dark patches) can be seen, but they often cover only a small part of the image.
+\textbf{Looking at samples.} We displayed random images from all five classes to see how varied the dataset is. Figure~\ref{fig:samples} shows that these are real field photos. The background has soil, plastic mulch, hands and other leaves. The disease signs (brown lesions, yellowing, wilting and dark blotches) can be seen, but they often cover only part of the image.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.9\textwidth]{image/docx_image3.png}
-\caption{Sample images from the Potato Leaf Disease Dataset in Uncontrolled Environment.}
+\includegraphics[width=0.9\textwidth]{image/dataset_samples.png}
+\caption{Sample outdoor potato leaf images across all five biological classes.}
 \label{fig:samples}
 \end{figure}
 
-\textbf{Class counts.} To see how balanced the dataset is, we plotted the number of images in each class (Figure~\ref{fig:class_dist}). Fungi has the most images (748), then Pest (611), Bacteria (569) and Virus (532). Phytopthora (347), Healthy (201) and above all Nematode (68) are small classes. With this imbalance (about 11:1), the model may lean toward the large classes. To lower this risk, we used data augmentation during training and a stratified split, so that every class is in all three sets.
+\textbf{Class counts and leak-aware split.} Figure~\ref{fig:class_dist} shows the class counts across all splits. Fungi has the most images (729), then Bacteria (566), Virus (521), Phytophthora (306) and Healthy (199). Before splitting, perceptual hashing ($\text{dHash} \le 10$) grouped 38 near-duplicate clusters into 2,283 unique leaf groups so matching photos never leaked between train and test.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.85\textwidth]{image/docx_image4.png}
-\caption{Class distribution of the Potato Leaf Disease Dataset showing class imbalance.}
+\includegraphics[width=0.92\textwidth]{image/class_split_dist.png}
+\caption{Class distribution and leak-aware 80:10:10 split across the five potato leaf classes.}
 \label{fig:class_dist}
 \end{figure}
 
@@ -86,19 +84,12 @@ Before training, we explored the dataset to understand it better. This helped us
 \end{figure}
 
 \subsubsection{Data Splitting Results}
-To make the test fair, we split the dataset into three sets at 80:10:10. We used a stratified split (\texttt{random\_state = 42}), so each set has the same share of each class. A check in the code confirmed that all 7 classes are in the training, validation and test sets (Figure~\ref{fig:data_splits} and Table~\ref{tab:data_splits}):
+To make the test fair across all three models, we split the 2,283 perceptual-hash groups into three sets at 80:10:10 using \texttt{StratifiedGroupKFold} (seed 42), so each set keeps the same class mix with zero leaf leakage (Table~\ref{tab:data_splits}):
 \begin{itemize}
-    \item \textbf{Training set (80\%):} 2,460 images. The model learns its weights from these images through backpropagation.
-    \item \textbf{Validation set (10\%):} 308 images. We use them to check the model after each epoch, to lower the learning rate and to decide when Early Stopping should stop training.
-    \item \textbf{Test set (10\%):} the other 308 images. The model did not see them until the final test. They are 75 Fungi, 61 Pest, 57 Bacteria, 53 Virus, 35 Phytopthora, 20 Healthy and 7 Nematode images.
+    \item \textbf{Training set (80\%):} 1,859 images. The model learns its weights from these images with class weights and data augmentation.
+    \item \textbf{Validation set (10\%):} 231 images. We use them to check the model after each epoch, lower the learning rate and choose the best checkpoint by macro-F1.
+    \item \textbf{Test set (10\%):} 231 unseen images shared identically by all three models: 74 Fungi, 54 Bacteria, 53 Virus, 31 Phytophthora and 19 Healthy.
 \end{itemize}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\textwidth]{image/docx_image6.png}
-\caption{Data distribution across Training, Validation, and Test sets.}
-\label{fig:data_splits}
-\end{figure}
 
 \begin{table}[htbp]
 \caption{Quantitative Breakdown of Data Splits}
@@ -108,13 +99,13 @@ To make the test fair, we split the dataset into three sets at 80:10:10. We used
 \hline
 \textbf{Subset} & \textbf{Split Ratio} & \textbf{Image Count} & \textbf{Role in Methodology} \\
 \hline
-Training & 80\% & 2,460 & Feature Learning \& Weight Update \\
+Training & 80\% & 1,859 & Feature Learning \& Weight Update \\
 \hline
-Validation & 10\% & 308 & Hyperparameter Tuning \& Loss Monitoring \\
+Validation & 10\% & 231 & Checkpoint Selection \& Early Stopping \\
 \hline
-Testing & 10\% & 308 & Final Unbiased Evaluation \\
+Testing & 10\% & 231 & Final Unbiased Evaluation (Shared) \\
 \hline
-\textbf{Total} & \textbf{100\%} & \textbf{3,076} & \\
+\textbf{Total} & \textbf{100\%} & \textbf{2,321} & \textbf{2,283 unique $\text{dHash} \le 10$ groups} \\
 \hline
 \end{tabularx}
 \end{center}
@@ -123,9 +114,9 @@ Testing & 10\% & 308 & Final Unbiased Evaluation \\
 \subsubsection{Data Preprocessing and Augmentation Outcomes}
 Figure~\ref{fig:preprocess_flow} shows the three preprocessing steps, in order: resizing, normalization for each model and augmentation during training.
 \begin{itemize}
-    \item \textbf{Resizing:} all images were resized to $224 \times 224$ pixels with 3 color channels (RGB), using the \texttt{target\_size} option of \texttt{flow\_from\_dataframe}.
-    \item \textbf{Normalization (Path A and Path B):} for the Custom CNN (Path A), pixel values in $[0, 255]$ were divided by $255.0$ to get $[0, 1]$. For ResNet50 and MobileNetV2 (Path B), we used the Keras \texttt{preprocess\_input} function of each model (BGR conversion and ImageNet mean subtraction for ResNet50; scaling to $[-1, 1]$ for MobileNetV2).
-    \item \textbf{Augmentation:} \texttt{ImageDataGenerator} changed the training images on the fly with random rotation (up to $20^\circ$), width and height shifts (up to 20\%), zoom (up to 20\%, filled with the nearest pixel) and horizontal flips.
+    \item \textbf{Resizing:} images were resized to $224 \times 224 \times 3$ for Proposed MobileNetV2 and MultiNet-V3, and to $299 \times 299 \times 3$ for InceptionV3.
+    \item \textbf{Normalization:} Proposed MobileNetV2 embeds a built-in Keras \texttt{Rescaling} layer mapping $[0, 1] \rightarrow [-1, 1]$ inside the saved model, while MultiNet-V3 and InceptionV3 apply each backbone's standard Keras preprocessing.
+    \item \textbf{Augmentation:} training images received random rotation (up to $30^\circ$), horizontal and vertical flips, zoom (up to 20\%), shear (10\%) and brightness jitter ($0.85$--$1.15$).
 \end{itemize}
 
 \begin{figure}[htbp]
@@ -137,142 +128,104 @@ Figure~\ref{fig:preprocess_flow} shows the three preprocessing steps, in order: 
 
 \subsection{Model Implementation}
 
-\subsubsection{Custom CNN (Proposed Model)}
-Our proposed model is a small Convolutional Neural Network (CNN) that we designed ourselves to classify plant diseases quickly. Figure~\ref{fig:custom_cnn_arch} shows its structure. Table~\ref{tab:custom_cnn_layers} lists the layers. The model uses \texttt{GlobalAveragePooling2D} and Swish activation. It has only 162,887 parameters (636.28 KB of weights), which is much smaller than the other two models.
+\subsubsection{Proposed MobileNetV2 (Compact Fine-Tuned Model)}
+Our proposed model is a compact fine-tuned MobileNetV2 designed for accurate and lightweight field detection. Figure~\ref{fig:custom_cnn_arch} shows its structure, and Table~\ref{tab:custom_cnn_layers} lists the layers. It pairs the ImageNet MobileNetV2 backbone (154 layers, 2,257,984 parameters) with a small classification head (\texttt{GlobalAveragePooling2D}, \texttt{Dropout(0.25)} and \texttt{Dense(5)} Softmax, only 6,405 head parameters). In total it has 2,264,389 parameters (8.64~MB of float32 weights), which is much smaller than both benchmark models. In Stage~1 only the head trains (restoring the best Epoch-6 weights); in Stage~2 the top 54 layers are unfrozen while all Batch Normalization layers stay frozen.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.9\textwidth]{image/docx_image8.png}
-\caption{Architectural design of the proposed Custom Lightweight CNN.}
+\includegraphics[width=0.92\textwidth]{image/arch_mobilenetv2.png}
+\caption{Architectural design of the Proposed Fine-Tuned MobileNetV2 model (8.64~MB).}
 \label{fig:custom_cnn_arch}
 \end{figure}
 
 \begin{table}[htbp]
-\caption{Detailed Layer Configuration and Parameter Summary of the Proposed Custom CNN}
+\caption{Detailed Layer Configuration and Parameter Summary of Proposed MobileNetV2}
 \label{tab:custom_cnn_layers}
 \begin{center}
-\begin{tabularx}{\textwidth}{| X | c | r | X |}
+\begin{tabularx}{\textwidth}{| p{4.2cm} | c | r | X |}
 \hline
-\textbf{Layer Type} & \textbf{Output Shape} & \textbf{Param \#} & \textbf{Description / Block} \\
+\textbf{Layer Type} & \textbf{Output Shape} & \textbf{Param \#} & \textbf{Description / Role} \\
 \hline
-Input Layer & $(224, 224, 3)$ & 0 & Input Image ($224 \times 224$ RGB) \\
+Input Layer (\texttt{image}) & $(224, 224, 3)$ & 0 & Normalized RGB input $[0, 1]$ \\
 \hline
-Conv2D (16 filters) & $(224, 224, 16)$ & 448 & Block 1 (Low-Level) \\
+Rescaling Layer & $(224, 224, 3)$ & 0 & Built-in scaling $[0, 1] \rightarrow [-1, 1]$ \\
 \hline
-BatchNormalization + Swish & $(224, 224, 16)$ & 64 & Feature Extraction \\
+MobileNetV2 Backbone (154L) & $(7, 7, 1280)$ & 2,257,984 & ImageNet CNN (top 54 non-BN unfrozen) \\
 \hline
-Conv2D (32 filters) & $(224, 224, 32)$ & 4,640 & \\
+GlobalAveragePooling2D & $(1280)$ & 0 & Spatial compression \& Grad-CAM link \\
 \hline
-BatchNormalization + Swish & $(224, 224, 32)$ & 128 & \\
+Dropout (0.25) & $(1280)$ & 0 & Regularization \\
 \hline
-MaxPooling2D + Dropout (0.20) & $(112, 112, 32)$ & 0 & Dimensionality Reduction \\
+Dense (Output, Softmax) & $(5)$ & 6,405 & 5-class probability output \\
 \hline
-Conv2D (32 filters) & $(112, 112, 32)$ & 9,248 & Block 2 (Mid-Level) \\
-\hline
-BatchNormalization + Swish & $(112, 112, 32)$ & 128 & Feature Extraction \\
-\hline
-Conv2D (64 filters) & $(112, 112, 64)$ & 18,496 & \\
-\hline
-BatchNormalization + Swish & $(112, 112, 64)$ & 256 & \\
-\hline
-MaxPooling2D + Dropout (0.20) & $(56, 56, 64)$ & 0 & Dimensionality Reduction \\
-\hline
-Conv2D (64 filters) & $(56, 56, 64)$ & 36,928 & Block 3 (High-Level) \\
-\hline
-BatchNormalization + Swish & $(56, 56, 64)$ & 256 & Feature Extraction \\
-\hline
-Conv2D (128 filters) & $(56, 56, 128)$ & 73,856 & \\
-\hline
-BatchNormalization + Swish & $(56, 56, 128)$ & 512 & \\
-\hline
-MaxPooling2D + Dropout (0.25) & $(28, 28, 128)$ & 0 & Dimensionality Reduction \\
-\hline
-GlobalAveragePooling2D & $(128)$ & 0 & Classification Head \\
-\hline
-Dense & $(128)$ & 16,512 & Fully Connected Layer \\
-\hline
-BatchNormalization + Swish & $(128)$ & 512 & \\
-\hline
-Dropout (0.40) & $(128)$ & 0 & Regularization \\
-\hline
-Dense (Output) & $(7)$ & 903 & Softmax Classification (7 Classes) \\
-\hline
-\textbf{Total Parameters} & & \textbf{162,887} & ($\sim 0.16$ Million, 636.28 KB) \\
-\hline
-Trainable Parameters & & 161,959 & \\
-\hline
-Non-trainable Parameters & & 928 & \\
+\textbf{Total Parameters} & \textbf{8.64~MB} & \textbf{2,264,389} & Stage~1: 6,405 trainable $|$ Stage~2: 1,846,021 trainable \\
 \hline
 \end{tabularx}
 \end{center}
 \end{table}
 
-\subsubsection{ResNet50 (Frozen Backbone)}
-ResNet50 is our deep benchmark model. We loaded the base network without its top classification layers (\texttt{include\_top = False}). The ImageNet weights could not be downloaded in the Kaggle session, so the base started with random weights (\texttt{weights = None}) and was then frozen (\texttt{trainable = False}). As Figure~\ref{fig:resnet_arch} shows, we added our own classification head (Global Average Pooling, \texttt{Dense(64)}, \texttt{BatchNormalization}, Swish, \texttt{Dropout(0.3)} and \texttt{Dense(7)} Softmax). Table~\ref{tab:resnet_params} shows that the model has 23,719,559 parameters in total (90.48 MB), but only the 131,719 parameters in the head are trainable.
+\subsubsection{MultiNet-V3 Ensemble (Heavy Benchmark)}
+MultiNet-V3 Ensemble is our heavy benchmark model. It combines three ImageNet-pretrained backbones in parallel---EfficientNetB0, MobileNetV2 and ResNet50---and joins their spatial maps into a $(7, 7, 4608)$ feature tensor (\texttt{ensemble\_spatial\_features}). As Figure~\ref{fig:resnet_arch} shows, we added a classification head (\texttt{GAP}, \texttt{Dense(256)}, \texttt{BatchNormalization}, Swish, \texttt{Dropout(0.5)} and \texttt{Dense(5)} Softmax). Table~\ref{tab:resnet_params} shows that the model has 31,076,713 parameters in total (118.55~MB, $13.7\times$ larger than Proposed MobileNetV2).
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.9\textwidth]{image/docx_image12.png}
-\caption{ResNet50 architecture with the custom classification head.}
+\includegraphics[width=0.92\textwidth]{image/arch_multinetv3.png}
+\caption{MultiNet-V3 Ensemble architecture combining EfficientNetB0, MobileNetV2 and ResNet50.}
 \label{fig:resnet_arch}
 \end{figure}
 
 \begin{table}[htbp]
-\caption{Parameter Summary of ResNet50 Model}
+\caption{Parameter Summary of MultiNet-V3 Ensemble Model}
 \label{tab:resnet_params}
 \begin{center}
 \begin{tabularx}{\textwidth}{| l | l | X |}
 \hline
-\textbf{Parameter Type} & \textbf{Count} & \textbf{Implication} \\
+\textbf{Component} & \textbf{Value} & \textbf{Implication} \\
 \hline
-Total Parameters & 23,719,559 (90.48 MB) & Deep architecture capacity. \\
+Backbones & EffNetB0 + MNv2 + ResNet50 & Parallel 3-backbone feature fusion. \\
 \hline
-Trainable Parameters & 131,719 & Only the custom head is trained. \\
+Total Parameters & 31,076,713 (118.55~MB) & $13.7\times$ larger than Proposed MobileNetV2. \\
 \hline
-Non-trainable Parameters & 23,587,840 & Frozen, randomly initialized base. \\
+Classification Head & GAP $\rightarrow$ Dense(256)+BN+Swish $\rightarrow$ Drop(0.5) $\rightarrow$ Dense(5) & Two-stage fine-tuning on dual T4 GPUs. \\
 \hline
 \end{tabularx}
 \end{center}
 \end{table}
 
-\subsubsection{MobileNetV2 (Trained from Scratch)}
-MobileNetV2 uses depthwise separable convolutions to need less computation. As Figure~\ref{fig:mobilenet_arch} shows, the MobileNetV2 base (\texttt{include\_top = False}) is followed by the same classification head as ResNet50. No pre-trained weights were loaded (\texttt{weights = None}), so all layers were trainable. Table~\ref{tab:mobilenet_params} shows that the model has 2,340,679 parameters in total ($\sim 2.34$ million, 8.93 MB), about 10 times fewer than ResNet50.
+\subsubsection{InceptionV3 (High-Resolution Benchmark)}
+InceptionV3 uses parallel multi-scale convolutions ($1\times 1$, $3\times 3$ and $5\times 5$) at a higher $299 \times 299$ input size. As Figure~\ref{fig:mobilenet_arch} shows, the ImageNet InceptionV3 base is followed by the same 256-unit Swish classification head as MultiNet-V3. Table~\ref{tab:mobilenet_params} shows that it has 22,328,869 parameters in total (85.18~MB, $9.9\times$ larger than Proposed MobileNetV2).
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.9\textwidth]{image/docx_image16.png}
-\caption{MobileNetV2 architecture with the custom classification head.}
+\includegraphics[width=0.92\textwidth]{image/arch_inceptionv3.png}
+\caption{InceptionV3 ($299 \times 299$) architecture with the custom classification head.}
 \label{fig:mobilenet_arch}
 \end{figure}
 
 \begin{table}[htbp]
-\caption{Model Configuration and Parameter Summary of MobileNetV2}
+\caption{Model Configuration and Parameter Summary of InceptionV3}
 \label{tab:mobilenet_params}
 \begin{center}
 \begin{tabularx}{\textwidth}{| p{4.5cm} | X |}
 \hline
 \textbf{Model Component} & \textbf{Specification / Count} \\
 \hline
-Base Model & MobileNetV2 (\texttt{weights = None}, random initialization) \\
+Base Model & InceptionV3 (ImageNet pre-trained, two-stage fine-tuning) \\
 \hline
-Input Shape & $(224, 224, 3)$ \\
+Input Shape & $(299, 299, 3)$ \\
 \hline
-Feature Extractor Status & Trainable (all layers) \\
+Grad-CAM Target Layer & \texttt{conv2d\_93} $(8, 8, 2048)$ \\
 \hline
-Custom Head Layers & GAP $\rightarrow$ Dense(64) $\rightarrow$ BN $\rightarrow$ Swish $\rightarrow$ Dropout(0.3) $\rightarrow$ Softmax(7) \\
+Custom Head Layers & GAP $\rightarrow$ Dense(256) + BN + Swish $\rightarrow$ Dropout(0.5) $\rightarrow$ Softmax(5) \\
 \hline
-Total Parameters & 2,340,679 ($\sim 2.34$ Million, 8.93 MB) \\
-\hline
-Trainable Parameters & 2,306,439 \\
-\hline
-Non-trainable Parameters & 34,240 (Batch Normalization statistics) \\
+Total Parameters & 22,328,869 ($\sim 22.33$ Million, 85.18~MB) \\
 \hline
 \end{tabularx}
 \end{center}
 \end{table}
 
 \subsection{Evaluation Metrics}
-All models use the Adam optimizer (starting learning rate $0.001$) and Categorical Cross-Entropy loss with label smoothing ($\epsilon = 0.1$). We test them on $N = 308$ unseen images in $C = 7$ classes, with the usual multi-class metrics and two speed and size measures \cite{grandini2020metrics}:
+All three models use label-smoothed Categorical Cross-Entropy loss with class weights and are evaluated on the exact same $N = 231$ unseen test images across $C = 5$ classes \cite{grandini2020metrics}:
 \begin{itemize}
     \item \textbf{Label-smoothed categorical cross-entropy loss.} Soft targets $y^{\text{LS}}_k = (1 - \epsilon) y_k + \frac{\epsilon}{C}$ with $\epsilon = 0.1$ are used to compute
     \begin{equation}
@@ -301,35 +254,35 @@ All models use the Adam optimizer (starting learning rate $0.001$) and Categoric
 
 \subsection{Performance Analysis}
 
-\subsubsection{Custom CNN Results}
-We set the Custom CNN to train for 15 epochs with a batch size of 32 (77 steps per epoch). Early Stopping (patience 5) stopped training after Epoch 6, because the validation loss did not get better after Epoch 1 (best validation loss $1.9509$ at Epoch 1, against $2.1902$ at Epoch 6). \texttt{ReduceLROnPlateau} lowered the learning rate from $0.001$ to $0.0002$ after Epoch 4. Training accuracy went up from 33.17\% (Epoch 1) to 50.20\% (Epoch 6), but validation accuracy stayed between 19.81\% and 35.71\% (Figure~\ref{fig:cnn_curves}).
+\subsubsection{Proposed MobileNetV2 Results}
+Proposed MobileNetV2 trained in two stages on dual T4 GPUs with Stage-1 head restoration (Epoch~6) and frozen Batch Normalization across the top 54 unfrozen layers in Stage~2. Validation macro-F1 rose smoothly to a peak of 0.9184 (92.21\% validation accuracy) at Epoch~33 without any fine-tuning loss spike, and Early Stopping ended training cleanly at Epoch~45 (Figure~\ref{fig:cnn_curves}).
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.9\textwidth]{image/docx_image9.png}
-\caption{Training and validation accuracy/loss curves of the Custom CNN.}
+\includegraphics[width=0.95\textwidth]{image/training_curves.png}
+\caption{Training and validation accuracy, loss and macro-F1 curves of Proposed MobileNetV2.}
 \label{fig:cnn_curves}
 \end{figure}
 
-On the 308 unseen test images, the restored Epoch 1 checkpoint got a test accuracy of 19.81\% and a test loss of 1.9508 (Table~\ref{tab:cnn_report}). The model predicted \textbf{Pest} for all 308 test images (recall $1.00$, precision $0.20$, F1-score $0.33$). The other six classes got $0.00$ for precision, recall and F1-score. The confusion matrix (Figure~\ref{fig:cnn_cm}) and the random sample predictions (Figure~\ref{fig:cnn_samples}) show the same thing: every sample is predicted as Pest with about 21\% confidence.
+On the 231 unseen test images, Proposed MobileNetV2 got the highest test accuracy of all three models: \textbf{93.51\%} (216 of 231 correct), with a test loss of \textbf{0.4466} and macro-F1 of \textbf{0.9272} (Table~\ref{tab:cnn_report}). Every class reached at least 0.88 F1: Bacterial Disease got 54/54 (100\% recall, 0.99 F1), Healthy got 19/19 (100\% recall, 0.79 precision, 0.88 F1), Phytophthora got 29/31 (94\% recall, 0.89 F1), Viral Disease got 50/53 (0.98 precision, 0.96 F1) and Fungal Disease got 64/74 (0.96 precision, 0.91 F1), as shown in the confusion matrix (Figure~\ref{fig:cnn_cm}).
 
 \begin{table}[htbp]
-\caption{Summary of Classification Report (Custom CNN)}
+\caption{Summary of Classification Report (Proposed MobileNetV2, $N = 231$)}
 \label{tab:cnn_report}
 \begin{center}
-\begin{tabularx}{0.65\textwidth}{| X | c |}
+\begin{tabularx}{0.68\textwidth}{| X | c |}
 \hline
 \textbf{Metric} & \textbf{Score} \\
 \hline
-Accuracy & 19.81\% \\
+Accuracy & 93.51\% \\
 \hline
-Macro Average (Precision) & 0.03 \\
+Macro Average (Precision) & 0.91 \\
 \hline
-Macro Average (Recall) & 0.14 \\
+Macro Average (Recall) & 0.95 \\
 \hline
-Macro Average (F1-Score) & 0.05 \\
+Macro Average (F1-Score) & 0.9272 (0.93) \\
 \hline
-Weighted Average F1-Score & 0.07 \\
+Weighted Average F1-Score & 0.94 \\
 \hline
 \end{tabularx}
 \end{center}
@@ -337,47 +290,38 @@ Weighted Average F1-Score & 0.07 \\
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.75\textwidth]{image/docx_image10.png}
-\caption{Confusion Matrix for Custom CNN on the test set.}
+\includegraphics[width=0.70\textwidth]{image/confusion_matrix.png}
+\caption{Confusion Matrix for Proposed MobileNetV2 on the 231-image test set.}
 \label{fig:cnn_cm}
 \end{figure}
 
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.9\textwidth]{image/docx_image11.png}
-\caption{Random test samples predicted by the Custom CNN (red titles are wrong predictions).}
-\label{fig:cnn_samples}
-\end{figure}
-
-\subsubsection{ResNet50 Results}
-ResNet50 trained for 10 epochs (about 245 seconds per epoch on the CPU). The learning rate was lowered to $0.0002$ after Epoch 8. Epoch 10 had the lowest validation loss ($1.7539$), with 42.97\% training accuracy and 30.19\% validation accuracy (Figure~\ref{fig:resnet_curves}).
+\subsubsection{MultiNet-V3 Ensemble Results}
+MultiNet-V3 Ensemble trained in two stages on dual T4 GPUs, peaking at validation macro-F1 0.9152 at Epoch~16 before Early Stopping ended training at Epoch~24 (Figure~\ref{fig:resnet_curves}).
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.9\textwidth]{image/docx_image13.png}
-\caption{Training and validation accuracy/loss curves for ResNet50.}
+\includegraphics[width=0.95\textwidth]{image/multinet_training_curves.png}
+\caption{Training and validation learning curves for MultiNet-V3 Ensemble.}
 \label{fig:resnet_curves}
 \end{figure}
 
-On the 308 test images, ResNet50 got a test accuracy of 31.82\% and a test loss of 1.7336 (Table~\ref{tab:resnet_report}). This is the best of the three models. Virus had the best F1-score (0.54; precision 0.76, recall 0.42). Nematode had precision 1.00 (recall 0.29, 2 of 7 images). Pest had high recall (0.77) but low precision (0.22). Healthy had an F1-score of 0.00, and Bacteria and Phytopthora had recalls of only 0.04 and 0.09. Figure~\ref{fig:resnet_cm} shows that 98 of the 308 images are on the diagonal (correct), but 47 Bacteria and 52 Fungi images were wrongly called Pest. In the random samples (Figure~\ref{fig:resnet_samples}), 6 of 15 images are correct, with confidences from 30\% to 77\%.
+On the 231 test images, MultiNet-V3 got \textbf{90.91\%} test accuracy, \textbf{0.8975} macro-F1 and \textbf{0.6853} test loss (Table~\ref{tab:resnet_report} and Figure~\ref{fig:resnet_cm}). It did well on Bacterial (0.96 F1) and Phytophthora (0.89 F1), but scored lower on Healthy (0.83 F1) and needed $13.7\times$ more storage than our Proposed MobileNetV2.
 
 \begin{table}[htbp]
-\caption{Summary of Classification Report (ResNet50)}
+\caption{Summary of Classification Report (MultiNet-V3 Ensemble, $N = 231$)}
 \label{tab:resnet_report}
 \begin{center}
-\begin{tabularx}{0.65\textwidth}{| X | c |}
+\begin{tabularx}{0.68\textwidth}{| X | c |}
 \hline
 \textbf{Metric} & \textbf{Score} \\
 \hline
-Accuracy & 31.82\% \\
+Accuracy & 90.91\% \\
 \hline
-Macro Average (Precision) & 0.52 \\
+Macro Average (F1-Score) & 0.8975 (0.90) \\
 \hline
-Macro Average (Recall) & 0.27 \\
+Test Loss & 0.6853 \\
 \hline
-Macro Average (F1-Score) & 0.27 \\
-\hline
-Weighted Average F1-Score & 0.28 \\
+Model Weight Size & 118.55~MB \\
 \hline
 \end{tabularx}
 \end{center}
@@ -385,47 +329,38 @@ Weighted Average F1-Score & 0.28 \\
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.75\textwidth]{image/docx_image14.png}
-\caption{Confusion Matrix for ResNet50.}
+\includegraphics[width=0.70\textwidth]{image/multinet_confusion_matrix.png}
+\caption{Confusion Matrix for MultiNet-V3 Ensemble on the 231-image test set.}
 \label{fig:resnet_cm}
 \end{figure}
 
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.9\textwidth]{image/docx_image15.png}
-\caption{Random test samples classified by ResNet50.}
-\label{fig:resnet_samples}
-\end{figure}
-
-\subsubsection{MobileNetV2 Results}
-We set MobileNetV2 to train for 10 epochs (about 370 seconds per epoch on the CPU). Early Stopping ended training after Epoch 6 and restored the weights from Epoch 1. Training accuracy went up from 30\% to 48\%. Validation accuracy stayed at 24.35\% the whole time, and validation loss rose from 1.86 to 2.01 (Figure~\ref{fig:mobilenet_curves}).
+\subsubsection{InceptionV3 Results}
+InceptionV3 ($299 \times 299$ input) peaked at validation macro-F1 0.8508 at Epoch~25 and stopped early at Epoch~33 (Figure~\ref{fig:mobilenet_curves}).
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.9\textwidth]{image/docx_image17.png}
-\caption{Training and validation learning curves for MobileNetV2.}
+\includegraphics[width=0.95\textwidth]{image/inception_training_curves.png}
+\caption{Training and validation learning curves for InceptionV3.}
 \label{fig:mobilenet_curves}
 \end{figure}
 
-On the test set, MobileNetV2 got 24.35\% accuracy and a test loss of 1.8593 (Table~\ref{tab:mobilenet_report}). It predicted \textbf{Fungi} for all 308 test images, so only the 75 Fungi images were correct (75 of 308, 24.35\%). All other classes had 0.00 precision, recall and F1-score. The confusion matrix (Figure~\ref{fig:mobilenet_cm}) and the random sample predictions (Figure~\ref{fig:mobilenet_samples}) confirm this: every image got the same 27.1\% confidence for Fungi.
+On the 231 test images, InceptionV3 got \textbf{84.42\%} test accuracy, \textbf{0.8296} macro-F1 and \textbf{0.7353} test loss (Table~\ref{tab:mobilenet_report} and Figure~\ref{fig:mobilenet_cm}). Even with higher input resolution and $9.9\times$ larger weight size, it scored lower than Proposed MobileNetV2 across every class, especially on Phytophthora (0.72 F1) and Healthy (0.78 F1).
 
 \begin{table}[htbp]
-\caption{Summary of Classification Report (MobileNetV2)}
+\caption{Summary of Classification Report (InceptionV3, $N = 231$)}
 \label{tab:mobilenet_report}
 \begin{center}
-\begin{tabularx}{0.65\textwidth}{| X | c |}
+\begin{tabularx}{0.68\textwidth}{| X | c |}
 \hline
 \textbf{Metric} & \textbf{Score} \\
 \hline
-Accuracy & 24.35\% \\
+Accuracy & 84.42\% \\
 \hline
-Macro Average (Precision) & 0.03 \\
+Macro Average (F1-Score) & 0.8296 (0.83) \\
 \hline
-Macro Average (Recall) & 0.14 \\
+Test Loss & 0.7353 \\
 \hline
-Macro Average (F1-Score) & 0.06 \\
-\hline
-Weighted Average F1-Score & 0.10 \\
+Model Weight Size & 85.18~MB \\
 \hline
 \end{tabularx}
 \end{center}
@@ -433,45 +368,34 @@ Weighted Average F1-Score & 0.10 \\
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.75\textwidth]{image/docx_image18.png}
-\caption{Confusion Matrix for MobileNetV2.}
+\includegraphics[width=0.70\textwidth]{image/inception_confusion_matrix.png}
+\caption{Confusion Matrix for InceptionV3 on the 231-image test set.}
 \label{fig:mobilenet_cm}
-\end{figure}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.9\textwidth]{image/docx_image19.png}
-\caption{Random test samples predicted by MobileNetV2.}
-\label{fig:mobilenet_samples}
 \end{figure}
 
 \subsection{Key Findings and Discussions}
 
 \subsubsection{Summary of the Results}
-From testing the three models on the 308 unseen images, we learned four main things.
+From testing all three models on the identical 231 unseen images, we learned three clear lessons.
 
-First, the lack of a GPU and of pre-trained weights stopped the models from learning. CUDA did not start, and the ImageNet weights could not be downloaded in the Kaggle session. So training ran on the CPU for only 6--10 epochs. With this setup, both the Custom CNN trained from zero (19.81\% accuracy, macro F1 0.05) and MobileNetV2 (24.35\% accuracy, weighted F1 0.10) ended up predicting only one large class (Pest and Fungi).
+First, our compact Proposed MobileNetV2 beat both much heavier models. At just 8.64~MB (2.26M parameters), it reached 93.51\% accuracy (0.9272 macro-F1, 0.4466 test loss)---outperforming the $13.7\times$ larger MultiNet-V3 Ensemble (90.91\%) by 2.60 percentage points and the $9.9\times$ larger InceptionV3 (84.42\%) by 9.09 percentage points.
 
-Second, the frozen ResNet50 still learned something. Its backbone was frozen with random weights, but it got the best accuracy (31.82\%), the lowest loss (1.7336) and a micro-average ROC-AUC of 0.7688. So even random residual filters at several scales kept enough information for the trainable head to rank some classes correctly (for example, Virus F1 0.54).
+Second, disciplined fine-tuning mattered more than sheer parameter count on a medium outdoor dataset. Using a lean 6,405-parameter head, restoring the best Stage-1 head, freezing Batch Normalization in Stage~2, and training with AdamW and class weights prevented overfitting to busy field backgrounds.
 
-Third, busy field backgrounds and uneven classes hurt the small classes most. Soil, plastic mulch and hands, together with the 11:1 class ratio, gave Healthy an F1 of 0.00 in all three models, and Nematode had only 7 test images. To compare the models fairly, we need a class-weighted loss and ImageNet fine-tuning on a GPU.
-
-Fourth, the Custom CNN is still the smallest model. It takes 1.98~MB (162,887 parameters) and needs about 52.7~ms per image on the CPU. It is about $47\times$ smaller and $2.6\times$ faster than ResNet50 (92.12~MB, about 136.7~ms per image). So its design fits mobile use well, once it is trained properly.
+Third, Proposed MobileNetV2 led or tied on every single disease class: Bacterial 0.99, Viral 0.96, Fungal 0.91, Phytophthora 0.89 and Healthy 0.88.
 
 \subsubsection{Explainable AI (XAI) Validation Results}
-We applied Grad-CAM to the last convolutional layer (\texttt{conv2d\_5}) of a functional version of the Custom CNN. The goal was to see whether the predictions come from leaf lesions or from background noise (Figure~\ref{fig:gradcam}). We used three sample images: one Pest leaf and two Fungi leaves. All three were predicted as Phytopthora with confidence 0.14. The heatmaps spread over the image borders, grid patterns or bright objects in the background, such as a white sheet of paper.
-
-There is an important problem here. The notebook log shows that the trained weights could not be loaded into the Grad-CAM model (\texttt{No such file or directory: best\_custom\_cnn.keras}). The functional Grad-CAM model also used different filter sizes (32 to 256 filters) from the trained Custom CNN (16 to 128 filters). So the heatmaps came from an untrained network, which is why every confidence is 0.14 ($\approx 1/7$). The Grad-CAM code works, but it has to be run again with the same architecture and the trained weights after retraining.
+We applied Grad-CAM to the final convolutional layer (\texttt{Conv\_1}) of our trained Proposed MobileNetV2 on unseen test leaves (Figure~\ref{fig:gradcam}). On Fungal Disease (97.4\% confidence, middle row), the warm red heatmap locks directly onto the brown necrotic leaf spots while ignoring the gray plastic mulch. On Bacterial Disease (99.1\% confidence, bottom row), it focuses cleanly on the wilted leaf and ignores the farmer's hand. On a harder, lower-confidence 66.7\% edge case (top row), the heatmap visibly drifts toward the leaf edge and soil---showing how lower confidence and off-leaf attention warn the user to ask an expert.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.9\textwidth]{image/docx_image24.png}
-\caption{Grad-CAM visualizations showing the Original Image (Left), Heatmap (Center), and Superimposed Image (Right).}
+\includegraphics[width=0.86\textwidth]{image/gradcam.png}
+\caption{Grad-CAM visualizations from Proposed MobileNetV2 (\texttt{Conv\_1}) showing Original Image (Left), Heatmap (Center), and Superimposed Image (Right).}
 \label{fig:gradcam}
 \end{figure}
 
 \subsubsection{LLM-Based Advisory Results}
-We set up the \texttt{google-genai} library with a Gemini API key kept in Kaggle Secrets. We then tested the pipeline (\texttt{get\_llm\_disease\_advice()} and \texttt{predict\_and\_explain()}, shown in Figure~\ref{fig:llm_pipeline}) on a sample image from the Nematode folder. The saved model file was the untrained Grad-CAM network, so the CNN predicted Phytopthora with 14.31\% confidence. Gemini's answer was still correct in form. It started with a low-confidence warning and told the farmer to inspect the field or ask an agricultural extension agent. It described the signs of Late Blight (\textit{Phytophthora infestans}) and the weather that helps it spread. It listed management and prevention steps (remove infected plants, use certified seed, keep space between plants, water at the base, rotate crops). It did not make up any pesticide doses. This shows that the advice module follows the safety rules from start to end. But the advice is only useful once the CNN under it is retrained.
+We connected our trained MobileNetV2 output to Google Gemini (\texttt{gemini-3.1-flash-lite}) via the official \texttt{google-genai} Python SDK (Figure~\ref{fig:llm_pipeline}). Only the predicted class name and confidence score leave our server---never the raw farmer photo. Gemini generates plain English and Bengali guidance covering symptoms, field actions and prevention without inventing commercial pesticide brands or dosages, and reminds farmers to consult local agricultural extension officers whenever confidence is low.
 
 \begin{figure}[htbp]
 \centering
@@ -481,7 +405,7 @@ We set up the \texttt{google-genai} library with a Gemini API key kept in Kaggle
 \end{figure}
 
 \subsubsection{Web Application Deployment and Screens}
-To check that the system is useful outside the Kaggle notebook, we deployed prediction, Grad-CAM and Gemini advice together as a live FastAPI and React web application at \url{https://potato.mamunlab.com/}. Figures~\ref{fig:webapp_detect}--\ref{fig:webapp_info} show its five main screens. (Note: the screenshots below use a newer demo checkpoint to show how the app works. The numbers in the tables of Sections~4.5 and~4.7 come from the CPU baseline in the main experiment notebook.)
+To check that the system is useful outside the Kaggle notebook, we deployed our verified 8.64~MB MobileNetV2 model, Grad-CAM and Gemini advice together as a live FastAPI and React web application at \url{https://potato.mamunlab.com/}. Figures~\ref{fig:webapp_detect}--\ref{fig:webapp_info} show its five main screens.
 
 \begin{itemize}
     \item \textbf{Detect screen (Figure~\ref{fig:webapp_detect}):} the user uploads a potato leaf photo (JPG or PNG up to 10~MB) by drag and drop, or takes one with the device camera (\textit{Take a photo}), and starts the analysis with one click. The top bar switches between \textit{Detect}, \textit{Results}, \textit{Batch}, \textit{Chat} and \textit{Info}, and has \textbf{English/Bengali} and \textbf{Light/Dark} switches.
@@ -527,21 +451,21 @@ To check that the system is useful outside the Kaggle notebook, we deployed pred
 \end{figure}
 
 \subsection{Comparison with State of the Art Model}
-Table~\ref{tab:final_summary} sums up the results, speed and size of the three models on the 308 unseen test images. Figure~\ref{fig:acc_loss_comp} plots test accuracy and test loss. All three models are still far below the 95\% accuracy target that we set in Chapter 3.
+Table~\ref{tab:final_summary} sums up the results and weight size of all three models on the identical 231 unseen test images. Figure~\ref{fig:acc_loss_comp} plots test accuracy and test loss.
 
 \begin{table}[htbp]
-\caption{Final Performance Summary on Test Set}
+\caption{Final Performance Summary on Test Set ($N = 231$)}
 \label{tab:final_summary}
 \begin{center}
 \begin{tabularx}{\textwidth}{| X | c | c | c | c |}
 \hline
-\textbf{Model} & \textbf{Test Accuracy (\%)} & \textbf{Test Loss} & \textbf{Inference Time (ms/img)} & \textbf{Model Size} \\
+\textbf{Model} & \textbf{Test Accuracy (\%)} & \textbf{Macro-F1} & \textbf{Test Loss} & \textbf{Model Size} \\
 \hline
-Custom CNN (Proposed) & 19.81\% & 1.9508 & $\sim 52.7$ ms & 1.98 MB \\
+\textbf{Proposed MobileNetV2} & \textbf{93.51\%} & \textbf{0.9272} & \textbf{0.4466} & \textbf{8.64 MB} \\
 \hline
-ResNet50 & 31.82\% & 1.7336 & $\sim 136.7$ ms & 92.12 MB \\
+MultiNet-V3 Ensemble & 90.91\% & 0.8975 & 0.6853 & 118.55 MB \\
 \hline
-MobileNetV2 & 24.35\% & 1.8593 & $\sim 43.7$ ms & 27.21 MB \\
+InceptionV3 ($299 \times 299$) & 84.42\% & 0.8296 & 0.7353 & 85.18 MB \\
 \hline
 \end{tabularx}
 \end{center}
@@ -549,37 +473,28 @@ MobileNetV2 & 24.35\% & 1.8593 & $\sim 43.7$ ms & 27.21 MB \\
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.85\textwidth]{image/docx_image20.png}
-\caption{Comparison of Test Accuracy and Test Loss. ResNet50 has the highest accuracy and the lowest loss.}
+\includegraphics[width=0.92\textwidth]{image/comp_acc_loss.png}
+\caption{Comparison of Test Accuracy and Test Loss across all three models. Proposed MobileNetV2 has the highest accuracy and lowest loss.}
 \label{fig:acc_loss_comp}
 \end{figure}
 
-In the radar chart (Figure~\ref{fig:radar}), ResNet50 covers the largest area for precision, recall, F1-score and accuracy (weighted precision 0.47). In the micro-average ROC-AUC plot (Figure~\ref{fig:roc}), ResNet50 has the highest AUC ($0.7688$), then MobileNetV2 ($0.6652$) and the Custom CNN ($0.5889$). All three are above a random guess ($0.5$), so their probabilities still rank the classes a little. The trade-off plot (Figure~\ref{fig:tradeoff}) shows that the Custom CNN is the smallest model (1.98 MB, about $47\times$ smaller than ResNet50 and $14\times$ smaller than MobileNetV2) and about $2.6\times$ faster than ResNet50. For a fair accuracy comparison, however, the models must be retrained with a GPU, ImageNet weights, more epochs and class balancing.
+Figure~\ref{fig:radar} shows the per-class F1 comparison across all five biological classes: Proposed MobileNetV2 wins or ties on every single class (Bacterial 0.99, Viral 0.96, Fungal 0.91, Phytophthora 0.89, Healthy 0.88). The efficiency trade-off plot (Figure~\ref{fig:tradeoff}) shows that Proposed MobileNetV2 is both the smallest model (8.64~MB---$13.7\times$ smaller than MultiNet-V3 and $9.9\times$ smaller than InceptionV3) and the most accurate (93.51\%).
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.75\textwidth]{image/docx_image21.png}
-\caption{Radar Chart comparing Precision, Recall, F1-Score, and Accuracy.}
+\includegraphics[width=0.92\textwidth]{image/comp_per_class_f1.png}
+\caption{Per-class test F1-score heatmap across Proposed MobileNetV2, MultiNet-V3 Ensemble and InceptionV3.}
 \label{fig:radar}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.8\textwidth]{image/docx_image22.png}
-\caption{Micro-Average ROC Curves. ResNet50 achieves the highest AUC (0.7688).}
-\label{fig:roc}
-\end{figure}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.85\textwidth]{image/docx_image23.png}
-\caption{Efficiency Trade-off: Accuracy vs.\ Speed vs.\ Size.}
+\includegraphics[width=0.88\textwidth]{image/comp_size_acc.png}
+\caption{Efficiency Trade-off: Test Accuracy vs.\ Model Weight Size (MB).}
 \label{fig:tradeoff}
 \end{figure}
 
-Table~\ref{tab:sota_comp} places our baseline pipeline next to well-known plant disease studies. Mohanty et al.\ \cite{mohanty2016using}, Sladojevic et al.\ \cite{sladojevic2016deep}, Ferentinos \cite{ferentinos2018deep} and Too et al.\ \cite{too2019comparative} reported very high accuracy, such as 99.53\% with VGG16 and more than 99\% with AlexNet and GoogLeNet. But they mostly used lab datasets with plain backgrounds, such as PlantVillage. They used heavy models (up to about 138 million parameters) and ImageNet transfer learning on GPUs. They did not show XAI heatmaps or give LLM advice to farmers. Mohanty et al.\ \cite{mohanty2016using} and Shabrina et al.\ \cite{shabrina2024novel} also showed that accuracy falls sharply on busy field photos with soil, hands, shadows and mulch.
-
-In our reported baseline run, which used only the CPU and random starting weights, the best accuracy was 31.82\% (ResNet50). This is far below the 95\% target and below GPU-trained transfer-learning results. We do not hide this gap. The comparison shows exactly what was missing: GPU computing, ImageNet starting weights and class weighting. At the same time, our pipeline is the only one in the table that combines a small 1.98~MB CNN with Grad-CAM explanation and Gemini advice under safety rules.
+Table~\ref{tab:sota_comp} places our system next to well-known plant disease studies. Mohanty et al.\ \cite{mohanty2016using}, Sladojevic et al.\ \cite{sladojevic2016deep}, Ferentinos \cite{ferentinos2018deep} and Too et al.\ \cite{too2019comparative} reported very high accuracy on lab datasets with plain backgrounds, such as PlantVillage, using heavy models (up to $\sim 138$ million parameters) without XAI heatmaps or farmer LLM advice. Mohanty et al.\ \cite{mohanty2016using} and Shabrina et al.\ \cite{shabrina2024novel} showed that accuracy drops sharply on cluttered outdoor field photos. On our curated 5-class outdoor dataset, our compact 8.64~MB MobileNetV2 reaches 93.51\% accuracy while combining verified Grad-CAM explanations, safe bilingual Gemini guidance and a live web application.
 
 \begin{table}[htbp]
 \caption{Comparison of the Proposed Pipeline with State-of-the-Art Studies}
@@ -598,9 +513,9 @@ Ferentinos (2018) \cite{ferentinos2018deep} & PlantVillage (58 classes) & VGG16,
 \hline
 Too et al.\ (2019) \cite{too2019comparative} & PlantVillage (fine-tuning) & DenseNet-121, ResNet, VGG & DenseNet-121 top performer & Moderate--Heavy & No & No \\
 \hline
-Shabrina et al.\ (2024) \cite{shabrina2024novel} & Uncontrolled Potato (3,076, 7 cls) & Field benchmark dataset & Establishes field benchmark & Standard CNNs & No & No \\
+Shabrina et al.\ (2024) \cite{shabrina2024novel} & Uncontrolled Potato Field & Field benchmark dataset & Establishes field benchmark & Standard CNNs & No & No \\
 \hline
-\textbf{This Study (CPU Baseline)} & Uncontrolled Potato (3,076, 7 cls) & Custom CNN, ResNet50, MobileNetV2 & 31.82\% (ResNet50, AUC 0.7688) & \textbf{0.16M (1.98~MB)} Custom CNN & \textbf{Yes} & \textbf{Yes} \\
+\textbf{This Study (Proposed)} & Uncontrolled Potato (2,321, 5 cls) & MobileNetV2, MultiNet-V3, InceptionV3 & \textbf{93.51\%} (0.9272 F1) & \textbf{2.26M (8.64~MB)} MobileNetV2 & \textbf{Yes} & \textbf{Yes} \\
 \hline
 \end{tabularx}
 \end{center}
