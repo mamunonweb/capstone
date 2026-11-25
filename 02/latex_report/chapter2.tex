@@ -7,6 +7,7 @@
 This chapter reviews earlier work on automatic plant disease detection. We start with manual field scouting and classic Machine Learning (ML) methods built on hand-made features. We then move to Deep Learning (DL) with transfer learning, small mobile networks, multi-backbone ensembles, fine-tuning and regularization, Explainable Artificial Intelligence (XAI) and Large Language Model (LLM) advisors. The chapter ends with a summary table and an analysis of the gaps that this study works on.
 
 \subsection{Literature Review}
+In this section we look at earlier studies in six areas: plant disease and how it is diagnosed, classic machine learning, deep learning on lab and field photos, transfer learning and small networks, training methods, and finally explainable AI and LLMs in farming.
 
 \subsubsection{Plant Pathology: Agricultural Context and Diagnostic Challenges}
 Plant diseases are a constant risk to the food supply and to farmers' income \cite{fao2017future}. The Food and Agriculture Organization (FAO) links 20--40\% of yearly crop losses worldwide to pests and pathogens \cite{strange2005plant}. Fungal, oomycete, bacterial and viral outbreaks often cause shortages in whole regions \cite{savary2019global}. In potato, several diseases look alike on the leaf. \textit{Phytophthora} late blight, for example, can be confused with other fungal leaf spots or with bacterial lesions. Telling them apart matters, because the wrong treatment, or a late one, lets the disease spread across the field.
@@ -50,8 +51,8 @@ Table~\ref{tab:lit_summary} summarizes the studies above and links the limits of
 \caption{Summary of Key Literature in Plant Disease Detection}
 \label{tab:lit_summary}
 \begin{center}
-\scriptsize
-\begin{tabularx}{\textwidth}{| p{2.2cm} | p{2.3cm} | p{2.7cm} | p{2.2cm} | X |}
+\small
+\begin{tabularx}{\textwidth}{| L{2.2cm} | L{2.3cm} | L{2.5cm} | L{2.2cm} | X |}
 \hline
 \textbf{Study} & \textbf{Dataset / Setting} & \textbf{Approach / Models} & \textbf{Reported Outcome} & \textbf{Key Gap Addressed in This Work} \\
 \hline
@@ -87,5 +88,3 @@ Second, random splits leak near-duplicates. Burst photos of the same leaf can la
 Third, small backbones are unstable during fine-tuning. If the Batch Normalization layers are unfrozen, or if a large classifier head is placed on MobileNetV2, a medium-sized dataset leads to validation shock or early stagnation. This can give the wrong idea that small models cannot pass 93\% accuracy on field images.
 
 Fourth, most prototypes never reach farmers. Many studies stop at a confusion matrix in a notebook. They do not check Grad-CAM localization, do not test that the exported model gives the same output, and do not build a live bilingual web application with camera capture, batch triage and safe LLM advice.
-
-\noindent \textbf{Conclusion of Analysis:} To deal with these gaps together, this thesis combines (1) a leak-aware 5-class field benchmark ($\text{dHash} \le 10$), (2) a fine-tuned 8.64~MB MobileNetV2 whose training changes add no size, compared directly with three different benchmark models, (3) Grad-CAM explanations that we checked, and (4) a deployed FastAPI/React web application in two languages, with Google Gemini advice under safety rules.

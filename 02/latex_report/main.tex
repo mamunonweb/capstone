@@ -14,6 +14,11 @@
 \usepackage{array}
 \usepackage{placeins}
 \usepackage{sectsty}
+\usepackage{float}
+\usepackage{caption}
+\captionsetup[table]{justification=raggedright,singlelinecheck=false}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\renewcommand{\tabularxcolumn}[1]{>{\raggedright\arraybackslash}p{#1}}
 
 % IEEE bibliography using biblatex
 \usepackage[

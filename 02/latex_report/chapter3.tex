@@ -8,15 +8,15 @@ This chapter explains how we built the potato leaf disease detection system. We 
 
 \subsection{Proposed Framework}
 We wanted high accuracy, a model under 9~MB, and an interface that is easy to understand. To get there, the system is split into five linked stages, shown in Figure~\ref{fig:workflow}:
-\begin{enumerate}
+\begin{itemize}
     \item \textbf{Dataset audit and leak-aware splitting.} We audit all 2,321 field photos in five potato classes. 64-bit perceptual difference hashing ($\text{dHash} \le 10$) groups them into 2,283 groups without duplicates. \texttt{StratifiedGroupKFold} (80:10:10) then splits the groups into separate training, validation and test sets.
     \item \textbf{Preprocessing, augmentation and class balancing.} Images are resized to the input size of each model ($224 \times 224 \times 3$, or $299 \times 299 \times 3$ for InceptionV3). During training they get leaf-like geometric and color changes on the fly. Inverse-frequency class weights, capped at $3.0$, reduce the effect of the uneven classes.
     \item \textbf{Training the small model and the benchmarks.} Our MobileNetV2 (2.26M parameters, 8.64~MB) is trained in two stages with AdamW and frozen BN on two NVIDIA Tesla T4 GPUs. The three other models (MultiNet-V3 Ensemble, InceptionV3 and NASNetMobile) are tested in the same way.
     \item \textbf{Checked evaluation, TTA and Grad-CAM.} Each candidate checkpoint is reloaded from disk to confirm that export does not change its output ($0.00 \times 10^{0}$ maximum probability difference). We then score it with single-pass and 4-view Test-Time Augmentation (TTA), and inspect it with Grad-CAM heatmaps.
     \item \textbf{Web application and bilingual Gemini advice.} The checked 8.64~MB \texttt{.keras} model runs behind a FastAPI backend and a React frontend (\url{https://potato.mamunlab.com/}). The app supports camera capture, batch analysis, PDF/CSV export, Grad-CAM overlays and Google Gemini chat in English and Bengali.
-\end{enumerate}
+\end{itemize}
 
-\begin{figure}[htbp]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.98\textwidth]{image/workflow.png}
 \caption{End-to-end methodology and system architecture of the compact explainable potato leaf disease detection and farmer advisory framework.}
@@ -25,11 +25,11 @@ We wanted high accuracy, a model under 9~MB, and an interface that is easy to un
 
 Before the full run, we checked that the project was feasible in three ways.
 
-\textit{Technical.} Training runs in a repeatable way on two NVIDIA Tesla T4 GPUs on Kaggle, with TensorFlow~2.20--2.21, Keras~3.13.2 \cite{abadi2016tensorflow} and \texttt{tf.distribute.MirroredStrategy}. We use only built-in Keras layers and no custom Lambda layers, so the same \texttt{.keras} file loads both in training and in the FastAPI server.
+\textit{Technical.} Training runs in a repeatable way on two NVIDIA Tesla T4 GPUs on Kaggle, with TensorFlow~2.20--2.21, Keras~3.13.2 \cite{abadi2016tensorflow} and \texttt{tf.distribute.\allowbreak MirroredStrategy}. We use only built-in Keras layers and no custom Lambda layers, so the same \texttt{.keras} file loads both in training and in the FastAPI server.
 
 \textit{Operational.} The exported classifier is only 8.64~MB. The web backend therefore starts fast, uses little memory and answers quickly when a farmer uploads a photo or takes one with a phone camera. No farming expertise is needed to use it.
 
-\textit{Economic.} All deep learning, vision and web tools we use are open source. Training ran on free Kaggle GPU hours. The Google Gemini model (\texttt{gemini-3.1-flash-lite}) receives only a short text summary of the result, not the image, so the running cost of the advice stays low.
+\textit{Economic.} All deep learning, vision and web tools we use are open source. Training ran on free Kaggle GPU hours. The Google Gemini model (\texttt{gemini-3.1-\allowbreak flash-lite}) receives only a short text summary of the result, not the image, so the running cost of the advice stays low.
 
 \subsection{Dataset Analysis and Project Requirements}
 We use a curated 5-class potato leaf dataset (\texttt{potato-disease-dataset-03}) built from field photos taken in uncontrolled conditions \cite{shabrina2024novel}. We kept the five main classes: Bacteria, Fungi, Healthy, Phytopthora and Virus. (Phytopthora is the folder name used in the source data for \textit{Phytophthora} late blight, and we kept that spelling.) Classes for pests and nematodes had very few images, so we left them out. The real field clutter stays in the photos: soil, shadows, plastic mulch, hands and overlapping leaves.
@@ -40,7 +40,7 @@ Table~\ref{tab:class_dist} shows the numbers. There are 2,321 RGB field images. 
 \caption{Dataset Classes, Image Counts, and Capped Training Class Weights (5-Class Contract)}
 \label{tab:class_dist}
 \begin{center}
-\begin{tabularx}{0.95\textwidth}{| c | l | X | c | c | c |}
+\begin{tabularx}{\textwidth}{| c | l | X | c | c | c |}
 \hline
 \textbf{Index} & \textbf{Folder Label} & \textbf{Display Name} & \textbf{Images} & \textbf{Share (\%)} & \textbf{Norm.\ Weight} \\
 \hline
@@ -84,6 +84,7 @@ Classic pipelines used color histograms or GLCM/SIFT features \cite{alhiary2011f
 \textit{Hardware requirements.} Training uses two NVIDIA Tesla T4 GPUs in the cloud (16~GB VRAM each, two synchronized replicas). Inference with FastAPI runs well on a normal CPU server, a laptop or an edge device with at least 4~GB RAM.
 
 \subsection{Algorithm and Model Analysis}
+This section explains the models we used. We first describe our main model, a small fine-tuned MobileNetV2, and the four training changes that made it better. Then we describe the three comparison models and the way we trained, saved and checked all four models.
 
 \subsubsection{Proposed Compact Model: Fine-Tuned MobileNetV2}
 Our main model uses \textbf{MobileNetV2} pretrained on ImageNet \cite{sandler2018mobilenetv2}. We kept the classifier head very small, because there are only 1,859 training images and we wanted the full model to stay at \textbf{8.64~MB} (2,264,389 parameters):
@@ -94,12 +95,12 @@ Our main model uses \textbf{MobileNetV2} pretrained on ImageNet \cite{sandler201
 \end{aligned}
 \end{equation}
 The head adds only \textbf{6,405 parameters} (25.02~KB) on top of the 2,257,984 parameters of the backbone. We did not want to make the model any larger. Instead, we made four changes to the training of a first, unoptimized baseline:
-\begin{enumerate}
+\begin{itemize}
     \item \textbf{Restore the best Stage~1 weights.} We first train the head for 10 epochs with the backbone frozen ($\text{LR} = 10^{-3}$). Before unfreezing, we reload the Stage~1 checkpoint with the best \texttt{val\_macro\_f1}. Fine-tuning then starts from the best head weights, not from the last epoch.
     \item \textbf{Keep Batch Normalization frozen during fine-tuning.} In Stage~2 (up to Epoch~60) we open the top 54 backbone layers (\texttt{block\_11} to \texttt{Conv\_1}) for training. Every \texttt{BatchNormalization} layer in the backbone stays frozen (\texttt{layer.trainable = False} and \texttt{training = False}). This leaves 36 convolutional and depthwise layers trainable. It also stops the batch-statistics shock that, in our first baseline, made the validation loss jump from $0.83 \rightarrow 2.63$.
     \item \textbf{AdamW, gradient clipping and less label smoothing.} We replaced Adam with \texttt{AdamW} ($\text{weight\_decay} = 10^{-4}$, $\text{clipnorm} = 1.0$) \cite{loshchilov2019decoupled} and lowered label smoothing from $\epsilon = 0.10 \rightarrow 0.05$. This regularizes the weights better and makes the model separate \textit{Phytophthora} and \textit{Fungi} lesions, which look alike, more clearly.
     \item \textbf{4-view Test-Time Augmentation (TTA).} At test time, the 8.64~MB model can average its softmax output over four fixed views: the original, a horizontal flip, a vertical flip and both flips. This raises macro-F1 and adds no parameters.
-\end{enumerate}
+\end{itemize}
 
 \subsubsection{Comparative Benchmark Architectures}
 To judge the accuracy and size of our MobileNetV2 fairly, we built three other models with one shared two-stage transfer-learning setup. All three use \texttt{Head LR = 3e-4}, \texttt{Fine-tune LR = 3e-5} and the head \texttt{GAP $\rightarrow$ Dropout $\rightarrow$ Dense(256) $\rightarrow$ BN $\rightarrow$ Swish $\rightarrow$ Dropout $\rightarrow$ Softmax(5)}. They use the same 5-class leak-aware split and the same two T4 GPUs.
@@ -114,6 +115,7 @@ To judge the accuracy and size of our MobileNetV2 fairly, we built three other m
 If we watched only the validation loss, we could pick a checkpoint that predicts mostly the largest class. So every notebook has a custom \texttt{MacroF1Callback}. It computes the exact validation \textbf{macro-F1} after each epoch, and this value drives \texttt{ModelCheckpoint}, \texttt{ReduceLROnPlateau} and \texttt{EarlyStopping}. After training, the candidate checkpoints (\texttt{head-checkpoint}, \texttt{fine-tune-checkpoint} and the reloaded \texttt{final-epoch}) are loaded from disk outside \texttt{MirroredStrategy}, so they behave exactly as they will on a single serving device. Before export, three automatic checks must pass: \texttt{predicts\_\allowbreak more\_\allowbreak than\_\allowbreak one\_\allowbreak class}, \texttt{macro\_\allowbreak f1\_\allowbreak above\_\allowbreak chance} and \texttt{mean\_\allowbreak confidence\_\allowbreak ok}. An \textbf{export integrity test} then reloads the final \texttt{.keras} file and confirms that it gives the same test probabilities ($\max |\hat{p}_{\text{reloaded}} - \hat{p}_{\text{selected}}| \le 10^{-3}$). The measured difference was $0.00 \times 10^{0}$ for all four models.
 
 \subsection{Explanation of Different Modules}
+The full system has three modules around the classifier. The Grad-CAM module shows which part of the leaf the model used. The LLM module turns the result into simple advice. The web application puts everything in one place for farmers.
 
 \subsubsection{Explainable AI Module (Grad-CAM)}
 We want to know whether a prediction comes from the lesion or from soil, mulch or the leaf edge. For this we use Gradient-weighted Class Activation Mapping (Grad-CAM) \cite{selvaraju2017grad} on the last spatial convolutional tensor of the deployed model. This is \texttt{Conv\_1} for MobileNetV2, \texttt{ensemble\_\allowbreak spatial\_\allowbreak features} for MultiNet-V3, \texttt{conv2d\_93} for InceptionV3 and \texttt{normal\_\allowbreak conv\_\allowbreak 1\_\allowbreak 12} for NASNetMobile. For the $k$-th feature map $A^k \in \mathbb{R}^{u \times v}$ and the predicted class score $y^c$, the channel weights $\alpha_k^c$ are the averaged gradients:

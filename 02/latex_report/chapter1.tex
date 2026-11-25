@@ -24,15 +24,6 @@ Early plant disease systems used hand-made image features, such as color histogr
 
 Deep Learning removed the need to design features by hand \cite{mohanty2016using, ferentinos2018deep}. With transfer learning from ImageNet, backbones such as ResNet \cite{he2016deep}, InceptionV3 \cite{szegedy2016rethinking}, EfficientNet \cite{tan2019efficientnet}, NASNetMobile \cite{zoph2018learning} and MobileNetV2 \cite{sandler2018mobilenetv2} reach good accuracy even on medium-sized farm datasets \cite{pan2010survey, too2019comparative}. However, most of these studies report accuracy only. They rarely look at model size. They seldom deal with the unstable fine-tuning that happens when Batch Normalization statistics change on small batches. Many also skip visual explanation \cite{selvaraju2017grad, amara2017deep} and never build an interface that a farmer could use. This project tries to cover all of these points in one pipeline that others can reproduce.
 
-\subsection{Research Objectives}
-Our goal is to build a potato leaf disease detector that is accurate, small, explainable and usable by farmers. The specific objectives are:
-\begin{itemize}
-    \item To build a leak-aware 5-class field benchmark (Bacteria, Fungi, Healthy, Phytopthora and Virus; 2,321 images). We group near-duplicate photos with perceptual difference hashing ($\text{dHash} \le 10$) and split with \texttt{StratifiedGroupKFold}, so the same leaf never appears in more than one of the training, validation and test sets.
-    \item To train a small \textbf{MobileNetV2} transfer-learning model (8.64~MB, 2.26M parameters). The training uses two-stage AdamW fine-tuning with frozen Batch Normalization, capped class weights, leaf-like augmentation and 4-view Test-Time Augmentation (TTA), which adds no parameters.
-    \item To compare this model with three other architectures: the MultiNet-V3 Ensemble (EfficientNetB0 + MobileNetV2 + ResNet50), InceptionV3 and NASNetMobile. We report accuracy, macro-F1, per-class precision and recall, test loss, parameter count, weight size and accuracy-to-size (Pareto) efficiency.
-    \item To check the model's decisions with Grad-CAM heatmaps \cite{selvaraju2017grad}, and then deploy it in a FastAPI/React web application in English and Bengali, with a Google Gemini Large Language Model (LLM) assistant that follows safety rules.
-\end{itemize}
-
 \subsection{Motivations}
 Three practical needs motivated this work.
 
@@ -41,6 +32,15 @@ Three practical needs motivated this work.
 \textit{Food security and less chemical waste.} If a farmer can tell bacterial, fungal, viral and \textit{Phytophthora} late-blight infections apart early, they can act in time and avoid spraying pesticide over the whole field \cite{fao2017future, savary2019global}.
 
 \textit{Trust.} Each diagnosis comes with a Grad-CAM heatmap that shows where the lesion is, and with simple advice in English or Bengali. We think this makes a neural network's output easier for farmers to act on \cite{ryo2022explainable}.
+
+\subsection{Research Objectives}
+Our goal is to build a potato leaf disease detector that is accurate, small, explainable and usable by farmers. The specific objectives are:
+\begin{itemize}
+    \item To build a leak-aware 5-class field benchmark (Bacteria, Fungi, Healthy, Phytopthora and Virus; 2,321 images). We group near-duplicate photos with perceptual difference hashing ($\text{dHash} \le 10$) and split with \texttt{StratifiedGroupKFold}, so the same leaf never appears in more than one of the training, validation and test sets.
+    \item To train a small \textbf{MobileNetV2} transfer-learning model (8.64~MB, 2.26M parameters). The training uses two-stage AdamW fine-tuning with frozen Batch Normalization, capped class weights, leaf-like augmentation and 4-view Test-Time Augmentation (TTA), which adds no parameters.
+    \item To compare this model with three other architectures: the MultiNet-V3 Ensemble (EfficientNetB0 + MobileNetV2 + ResNet50), InceptionV3 and NASNetMobile. We report accuracy, macro-F1, per-class precision and recall, test loss, parameter count, weight size and accuracy-to-size (Pareto) efficiency.
+    \item To check the model's decisions with Grad-CAM heatmaps \cite{selvaraju2017grad}, and then deploy it in a FastAPI/React web application in English and Bengali, with a Google Gemini Large Language Model (LLM) assistant that follows safety rules.
+\end{itemize}
 
 \subsection{Significance of the Research}
 For farmers and extension workers, the project gives a live web application that works on a phone. It supports camera capture of a single leaf, batch screening of up to 12 images, PDF and CSV reports, Grad-CAM overlays and chat in English or Bengali.
@@ -54,7 +54,7 @@ The main contributions of this thesis are:
 \begin{itemize}
     \item \textbf{A small classifier on the Pareto front.} Our MobileNetV2 reaches \textbf{93.51\%} single-pass test accuracy and \textbf{0.9272} macro-F1, and \textbf{93.94\%} accuracy / \textbf{0.9317} macro-F1 with 4-view TTA. It has only 2,264,389 parameters (8.64~MB), and the exported model matches the in-memory model exactly ($0.00 \times 10^{0}$ maximum probability difference).
     \item \textbf{A four-model benchmark and an ablation study.} All four architectures are tested on the same leak-aware 231-image test split: our MobileNetV2 (8.64~MB, 93.51\%), the MultiNet-V3 Ensemble (118.55~MB, 90.91\%), InceptionV3 (85.18~MB, 84.42\%) and NASNetMobile (17.33~MB, 72.73\%). We also record an ablation of training changes that cost no extra parameters. These changes removed the fine-tuning shock and raised MobileNetV2 accuracy from 91.34\% to 93.51\%.
-    \item \textbf{Grad-CAM for different network types.} We apply Grad-CAM to single-backbone layers (\texttt{Conv\_1}, \texttt{conv2d\_93}, \texttt{normal\_\allowbreak conv\_\allowbreak 1\_\allowbreak 12}) and to the joined feature maps of the ensemble (\texttt{ensemble\_\allowbreak spatial\_\allowbreak features}) \cite{selvaraju2017grad}.
+    \item \textbf{Grad-CAM for different network types.} We apply Grad-CAM to single-backbone layers (\texttt{Conv\_1}, \texttt{conv2d\_93}, \texttt{normal\_\allowbreak conv\_\allowbreak 1\_\allowbreak 12}) and to the joined feature maps of the ensemble (\texttt{ensemble\_\allowbreak spatial\_\allowbreak features}).
     \item \textbf{A working bilingual web application.} The classifier, the Grad-CAM viewer, CSV/PDF export and a Google Gemini assistant with safety rules run together in a FastAPI and React web platform (\url{https://potato.mamunlab.com/}).
 \end{itemize}
 

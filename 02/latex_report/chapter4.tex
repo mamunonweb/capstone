@@ -19,7 +19,7 @@ Table~\ref{tab:hw_sw} lists the hardware and software we used for training and f
 \caption{Hardware and Software Configuration for Dual-GPU Training and Web Deployment}
 \label{tab:hw_sw}
 \begin{center}
-\begin{tabularx}{\textwidth}{| p{4.8cm} | X |}
+\begin{tabularx}{\textwidth}{| L{4.8cm} | X |}
 \hline
 \textbf{Component} & \textbf{Specification} \\
 \hline
@@ -46,7 +46,7 @@ Web Application Stack & FastAPI backend (Python) + React frontend + Google Gemin
 \subsubsection{Dataset Audit and Visual Inspection}
 The 5-class dataset (\texttt{potato-disease-dataset-03}) has 2,321 RGB field images. Figure~\ref{fig:samples} shows samples taken from the Kaggle notebook audit. They show the usual field variety: soil, mulch, shadows, different leaf angles and small areas of dead tissue. \textit{Fungal Disease} and \textit{Phytophthora} late blight are especially hard to tell apart.
 
-\begin{figure}[htbp]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.98\textwidth]{image/dataset_samples.png}
 \caption{Representative field leaf samples across the five potato classes from the Kaggle dataset audit ($N = 2,321$).}
@@ -56,10 +56,10 @@ The 5-class dataset (\texttt{potato-disease-dataset-03}) has 2,321 RGB field ima
 \subsubsection{Leak-Aware Stratified Group Split}
 Perceptual difference hashing ($\text{dHash} \le 10$) found \textbf{2,283 distinct image groups} in the 2,321 images. It caught 38 near-duplicate clusters, so the same leaf cannot appear in two subsets. \texttt{StratifiedGroupKFold} then gave the same separate splits for all four models. Figure~\ref{fig:class_split} plots the split, and Table~\ref{tab:data_splits} gives the numbers per class.
 
-\begin{figure}[htbp]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.96\textwidth]{image/class_split_dist.png}
-\caption{Five-class dataset distribution (left) and leak-aware Train/Validation/Test split across 2,283 perceptual-hash groups (right).}
+\caption[Five-class dataset distribution and leak-aware data split.]{Five-class dataset distribution (left) and leak-aware Train/Validation/Test split across 2,283 perceptual-hash groups (right).}
 \label{fig:class_split}
 \end{figure}
 
@@ -67,7 +67,6 @@ Perceptual difference hashing ($\text{dHash} \le 10$) found \textbf{2,283 distin
 \caption{Exact Per-Class Breakdown of the Leak-Aware 80:10:10 Split (Shared Across All 4 Architectures)}
 \label{tab:data_splits}
 \begin{center}
-\small
 \setlength{\tabcolsep}{4pt}
 \begin{tabularx}{\textwidth}{| >{\raggedright\arraybackslash}X | c | c | c | c | c |}
 \hline
@@ -96,9 +95,9 @@ Table~\ref{tab:arch_specs} compares our MobileNetV2 with the three benchmark mod
 \caption{Architectural and Training Configuration Summary Across All Four Benchmarked Architectures}
 \label{tab:arch_specs}
 \begin{center}
-\scriptsize
+\small
 \setlength{\tabcolsep}{3.5pt}
-\begin{tabularx}{\textwidth}{| p{2.1cm} | c | r | r | X | p{2.1cm} | p{1.9cm} |}
+\begin{tabularx}{\textwidth}{| L{2.6cm} | c | r | r | X | L{2.1cm} | L{1.9cm} |}
 \hline
 \textbf{Model} & \textbf{Input} & \textbf{Params} & \textbf{MB} & \textbf{Head Design} & \textbf{Head / FT LR} & \textbf{Grad-CAM Layer} \\
 \hline
@@ -118,9 +117,9 @@ MultiNet-V3 Ensemble & $224^2$ & 31.08M & 118.55 & 3-Backbone Concat $\rightarro
 \caption{Compact Topology and Parameter Breakdown of the Proposed MobileNetV2 Model}
 \label{tab:mnv2_layers}
 \begin{center}
-\footnotesize
+\small
 \setlength{\tabcolsep}{4pt}
-\begin{tabularx}{\textwidth}{| p{4.1cm} | c | r | X |}
+\begin{tabularx}{\textwidth}{| L{4.1cm} | c | r | X |}
 \hline
 \textbf{Layer (Type)} & \textbf{Output Shape} & \textbf{Param \#} & \textbf{Role in Pipeline} \\
 \hline
@@ -169,7 +168,7 @@ Before we fixed the final model, we ran an ablation on the training setup. The a
 
 In the baseline, the BN layers were unfrozen at Epoch~9. The validation loss jumped from $0.8344$ to $2.6258$, and validation macro-F1 fell from $0.7918$ to $0.4356$. The model needed about 12 epochs to recover. At Epoch~40 it reached 91.34\% test accuracy (0.9119 macro-F1), and it was still improving when training ended. The optimized run is shown in Figure~\ref{fig:02_curves}. Here we restored the Epoch~6 head checkpoint (\texttt{val\_macro\_f1 = 0.8085}) and kept all BN layers frozen, and the fine-tuning shock did not happen. At Epoch~11 the validation loss went down ($0.7007 \rightarrow 0.6955$) instead of up. Validation macro-F1 rose steadily to a peak of \textbf{0.9184} at Epoch~33 (92.21\% validation accuracy, \texttt{val\_loss = 0.4434}), and Early Stopping ended the run at Epoch~45.
 
-\begin{figure}[htbp]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.98\textwidth]{image/training_curves.png}
 \caption[Training and validation curves for Proposed MobileNetV2.]{Training and validation accuracy, loss, and macro-F1 curves for the proposed fine-tuned MobileNetV2 model (45 epochs; no fine-tuning shock when Stage~2 starts).}
@@ -200,7 +199,7 @@ Baseline MobileNetV2 (Adam, unfrozen BN, 30 layers) & 40 & 0.6727 & 91.34\% & 0.
 \caption{Detailed Per-Class Classification Report of Proposed MobileNetV2 (Single-Pass, $N = 231$)}
 \label{tab:02_per_class}
 \begin{center}
-\begin{tabularx}{0.88\textwidth}{| X | c | c | c | c |}
+\begin{tabularx}{\textwidth}{| X | c | c | c | c |}
 \hline
 \textbf{Class} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-Score} & \textbf{Support} \\
 \hline
@@ -222,7 +221,7 @@ Viral Disease & 0.98 & 0.94 & 0.96 & 53 \\
 \end{center}
 \end{table}
 
-\begin{figure}[htbp]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.68\textwidth]{image/confusion_matrix.png}
 \caption[Confusion matrix of Proposed MobileNetV2 on the 231-image test set.]{Confusion matrix of the proposed fine-tuned MobileNetV2 (\texttt{fine-tune-checkpoint}) on the 231-image leak-aware test set (93.51\% accuracy, 0.9272 macro-F1).}
@@ -233,55 +232,61 @@ Viral Disease & 0.98 & 0.94 & 0.96 & 53 \\
 \subsubsection{MultiNet-V3 Ensemble Benchmark Results}
 MultiNet-V3 (EfficientNetB0 + MobileNetV2 + ResNet50, 31.08M parameters, 118.55~MB) is our large ensemble reference. Stage~1 reached \texttt{val\_macro\_f1 = 0.8866} quickly, by Epoch~5. Stage~2 peaked at \texttt{val\_macro\_f1 = 0.9152} (91.77\% validation accuracy) at Epoch~16, and Early Stopping ended training at Epoch~24 (Figure~\ref{fig:multinet_curves}). On the 231 test images, the chosen \texttt{final-epoch} checkpoint scored \textbf{90.91\% accuracy}, \textbf{0.8975 macro-F1} and \textbf{0.6853 test loss}, with a mean confidence of 0.8679 (Figure~\ref{fig:multinet_cm}). MultiNet-V3 did well on Bacterial (0.96 F1, 100\% recall) and Phytophthora (0.89 F1). But it gave false positives for \textit{Healthy}, the smallest class: some diseased leaves were labeled healthy (0.70 precision, 0.83 F1). It also needs $13.7\times$ more storage than our MobileNetV2, and its accuracy is 2.60 percentage points lower.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
 \includegraphics[width=0.98\textwidth]{image/multinet_training_curves.png}
 \caption{Training and validation learning curves for the MultiNet-V3 Ensemble benchmark (24 epochs, early stopped).}
 \label{fig:multinet_curves}
 \end{figure}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
-\includegraphics[width=0.68\textwidth]{image/multinet_confusion_matrix.png}
+\includegraphics[width=0.55\textwidth]{image/multinet_confusion_matrix.png}
 \caption{Confusion matrix of the MultiNet-V3 Ensemble benchmark on the 231-image test set (90.91\% accuracy, 0.8975 macro-F1).}
 \label{fig:multinet_cm}
 \end{figure}
+
+Figure~\ref{fig:multinet_curves} has three panels: accuracy, loss and validation macro-F1 for each epoch. The dotted line at Epoch~10 marks the start of fine-tuning. The training loss keeps going down, but the validation loss stays around 0.7 after Epoch~5, so the model gains little from the later epochs. In the confusion matrix (Figure~\ref{fig:multinet_cm}), each row is the true class and each column is the predicted class, so the correct answers are on the diagonal. All 54 Bacterial leaves are correct. Most errors are diseased leaves that were labeled \textit{Healthy}: 5 Fungal, 1 Phytophthora and 2 Viral leaves. This explains the low \textit{Healthy} precision.
 
 \FloatBarrier
 \subsubsection{InceptionV3 Benchmark Results}
 InceptionV3 (22.33M parameters, 85.18~MB, $299 \times 299$ input) trained for 33 epochs before Early Stopping. Its best \texttt{val\_macro\_f1} was 0.8508, at Epoch~25 (Figure~\ref{fig:inception_curves}). On the 231 test images it scored \textbf{84.42\% accuracy}, \textbf{0.8296 macro-F1} and \textbf{0.7353 test loss} (Figure~\ref{fig:inception_cm}). It reached 0.96 F1 on Bacterial Disease. Its Fungal recall (0.73), Phytophthora F1 (0.72) and Healthy precision (0.63), however, were all below our MobileNetV2, even though InceptionV3 needs $9.86\times$ more storage and $1.78\times$ more input pixels per image.
 
-\begin{figure}[htbp]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.98\textwidth]{image/inception_training_curves.png}
 \caption{Training and validation learning curves for the InceptionV3 ($299 \times 299$) benchmark (33 epochs).}
 \label{fig:inception_curves}
 \end{figure}
 
-\begin{figure}[htbp]
+\begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.68\textwidth]{image/inception_confusion_matrix.png}
+\includegraphics[width=0.55\textwidth]{image/inception_confusion_matrix.png}
 \caption{Confusion matrix of InceptionV3 on the 231-image test set (84.42\% accuracy, 0.8296 macro-F1).}
 \label{fig:inception_cm}
 \end{figure}
+
+Figures~\ref{fig:inception_curves} and~\ref{fig:inception_cm} use the same layout as the MultiNet-V3 figures. The curves show accuracy, loss and validation macro-F1 for each epoch, and the dotted line marks the start of fine-tuning. In the confusion matrix, the rows are the true classes, the columns are the predicted classes and the correct answers are on the diagonal.
 
 \FloatBarrier
 \subsubsection{NASNetMobile Benchmark Results}
 NASNetMobile (4.54M parameters, 17.33~MB) did not adapt well. Its searched cells have many branches, and our dataset is only medium-sized. Validation macro-F1 peaked at 0.6964 at Epoch~13, and training stopped early at Epoch~21 (Figure~\ref{fig:nasnet_curves}). On the unseen test set it scored \textbf{72.73\% accuracy}, \textbf{0.7049 macro-F1} and \textbf{0.9642 test loss}, with a mean confidence of 0.6633 (Figure~\ref{fig:nasnet_cm}). It confused many leaves in Healthy (0.40 precision, 0.54 F1), Phytophthora (0.63 F1) and Fungal Disease (0.58 recall).
 
-\begin{figure}[htbp]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.98\textwidth]{image/nasnet_training_curves.png}
 \caption{Training and validation learning curves for the NASNetMobile benchmark (21 epochs, early stopped).}
 \label{fig:nasnet_curves}
 \end{figure}
 
-\begin{figure}[htbp]
+\begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.68\textwidth]{image/nasnet_confusion_matrix.png}
+\includegraphics[width=0.55\textwidth]{image/nasnet_confusion_matrix.png}
 \caption{Confusion matrix of NASNetMobile on the 231-image test set (72.73\% accuracy, 0.7049 macro-F1).}
 \label{fig:nasnet_cm}
 \end{figure}
+
+Figures~\ref{fig:nasnet_curves} and~\ref{fig:nasnet_cm} again use the same layout. Here the numbers off the diagonal of the confusion matrix are much larger than for the other models, which matches the low accuracy and the weak \textit{Healthy}, \textit{Phytophthora} and \textit{Fungal} scores.
 
 \FloatBarrier
 \subsection{Key Findings and Discussions}
@@ -293,7 +298,7 @@ Table~\ref{tab:final_summary} ranks the four models by Pareto accuracy-to-size d
 \caption{Master Benchmark Comparison Ordered by Accuracy-to-Size Pareto Dominance ($N = 231$)}
 \label{tab:final_summary}
 \begin{center}
-\scriptsize
+\small
 \setlength{\tabcolsep}{3.5pt}
 \begin{tabularx}{\textwidth}{| c | X | r | r | c | c | c | c | c |}
 \hline
@@ -317,7 +322,6 @@ Table~\ref{tab:final_summary} ranks the four models by Pareto accuracy-to-size d
 \caption{Per-Class Test F1-Score Comparison Across All Four Benchmarked Architectures (Single-Pass, $N = 231$)}
 \label{tab:per_class_all}
 \begin{center}
-\small
 \setlength{\tabcolsep}{4pt}
 \begin{tabularx}{\textwidth}{| >{\raggedright\arraybackslash}X | c | c | c | c |}
 \hline
@@ -339,19 +343,21 @@ Viral Disease (53) & \textbf{0.96} & 0.91 & 0.87 & 0.76 \\
 \end{center}
 \end{table}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
-\includegraphics[width=0.98\textwidth]{image/benchmark_comparison.png}
+\includegraphics[width=0.9\textwidth]{image/benchmark_comparison.png}
 \caption{Overall test accuracy and macro-F1 across all four benchmarked architectures (left) and per-class F1 heatmap (right) on the identical 231-image leak-aware test split.}
 \label{fig:bench_comp}
 \end{figure}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
-\includegraphics[width=0.92\textwidth]{image/pareto_tradeoff.png}
+\includegraphics[width=0.8\textwidth]{image/pareto_tradeoff.png}
 \caption{Accuracy-to-size Pareto frontier (Test Macro-F1 vs.\ serialized weight size in MB on a logarithmic scale). Proposed MobileNetV2 is the only model on Pareto Front~1; it is both smaller and more accurate than every other benchmark model.}
 \label{fig:pareto}
 \end{figure}
+
+In Figure~\ref{fig:bench_comp}, the left chart shows a blue bar (test accuracy) and a green bar (macro-F1) for each model, from the best model at the top to the weakest at the bottom. The right chart is a heatmap of the F1-score for each class; darker blue means a higher score. The row of our MobileNetV2 is the darkest in every column. In Figure~\ref{fig:pareto}, each dot is one model. The x-axis is the file size in MB on a log scale, and the y-axis is the test macro-F1. A good model sits in the top-left corner: small and accurate. Our two MobileNetV2 points are in that corner, and the other three models are all to the right and lower, in the shaded area.
 
 We draw four main points from this benchmark.
 
@@ -364,37 +370,41 @@ Third, our model is at least as good as every other model on \textbf{all five cl
 Fourth, the exported models are safe to serve. When we reloaded each \texttt{.keras} file outside \texttt{MirroredStrategy}, the maximum probability difference was $0.00 \times 10^{0}$ for all four models. This means the file handed to the FastAPI backend behaves exactly like the trained model.
 
 \subsubsection{Explainable AI (Grad-CAM) Validation Results}
-Figures~\ref{fig:02_gradcam}, \ref{fig:multinet_gradcam} and \ref{fig:inception_gradcam} show Grad-CAM maps made from the trained Kaggle checkpoints on held-out test leaves. The layers are \texttt{Conv\_1} for our MobileNetV2, \texttt{ensemble\_\allowbreak spatial\_\allowbreak features} for MultiNet-V3 and \texttt{conv2d\_93} for InceptionV3. Untrained or collapsed models tend to light up the image borders. The fine-tuned MobileNetV2 instead focuses on the diseased tissue: dark lesions, yellow mottling and blight edges. Soil and plastic mulch in the background get little attention. Single hard cases are also useful. In one example, a \textit{Viral Disease} leaf that looks unclear was predicted as \textit{Phytophthora} with 66.7\% confidence, and its heatmap moved partly onto the soil. A case like this shows how the heatmap and the confidence score together can warn the farmer to ask an expert when symptoms overlap.
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.86\textwidth]{image/gradcam.png}
-\caption[Grad-CAM visual explanations from Proposed MobileNetV2.]{Grad-CAM visual explanations from the proposed MobileNetV2 model (\texttt{Conv\_1}) showing Original Image (left), Activation Heatmap (center), and Overlay (right) on unseen test leaves.}
-\label{fig:02_gradcam}
-\end{figure}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.86\textwidth]{image/multinet_gradcam.png}
-\caption[Grad-CAM visual explanations from MultiNet-V3 Ensemble.]{Grad-CAM visual explanations from the MultiNet-V3 Ensemble (\texttt{ensemble\_\allowbreak spatial\_\allowbreak features}) on the same unseen test leaves.}
-\label{fig:multinet_gradcam}
-\end{figure}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.86\textwidth]{image/inception_gradcam.png}
-\caption{Grad-CAM visual explanations from the InceptionV3 benchmark (\texttt{conv2d\_93}, $299 \times 299$) on the same unseen test leaves.}
-\label{fig:inception_gradcam}
-\end{figure}
+Figures~\ref{fig:02_gradcam}, \ref{fig:multinet_gradcam} and \ref{fig:inception_gradcam} show Grad-CAM maps made from the trained Kaggle checkpoints on held-out test leaves. The layers are \texttt{Conv\_1} for our MobileNetV2, \texttt{ensemble\_\allowbreak spatial\_\allowbreak features} for MultiNet-V3 and \texttt{conv2d\_93} for InceptionV3. Each figure has three columns: the original leaf on the left, the heatmap in the middle and the heatmap laid over the leaf on the right. Red and yellow areas are the parts the model used most. Untrained or collapsed models tend to light up the image borders. The fine-tuned MobileNetV2 instead focuses on the diseased tissue: dark lesions, yellow mottling and blight edges. Soil and plastic mulch in the background get little attention. Single hard cases are also useful. In one example, a \textit{Viral Disease} leaf that looks unclear was predicted as \textit{Phytophthora} with 66.7\% confidence, and its heatmap moved partly onto the soil. A case like this shows how the heatmap and the confidence score together can warn the farmer to ask an expert when symptoms overlap.
 
 \subsubsection{LLM-Based Advisory Pipeline}
-Figure~\ref{fig:llm_pipeline} shows how the classifier output reaches Gemini. After the CNN predicts a disease and a softmax confidence, only these two fields are sent to Google Gemini (\texttt{gemini-3.1-flash-lite}). The user's photo is never sent. Gemini follows fixed safety rules. It explains the visible symptoms and sums up practical field and hygiene steps. It may not invent pesticide brands or doses. When confidence is low, it tells the farmer to contact the local agricultural extension officer.
+Figure~\ref{fig:llm_pipeline} shows how the classifier output reaches Gemini. The figure is a flow chart with six steps from top to bottom: the leaf image, resizing to $224 \times 224$ and rescaling by 1/255, the CNN prediction (class and confidence), the prompt builder (7 topics and the safety rules), the Gemini API and, last, the advice text for the farmer. After the CNN predicts a disease and a softmax confidence, only these two fields are sent to Google Gemini (\texttt{gemini-3.1-flash-lite}). The user's photo is never sent. Gemini follows fixed safety rules. It explains the visible symptoms and sums up practical field and hygiene steps. It may not invent pesticide brands or doses. When confidence is low, it tells the farmer to contact the local agricultural extension officer.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
-\includegraphics[width=0.9\textwidth]{image/docx_image25.png}
-\caption{Safety-constrained classifier-to-LLM disease advisory workflow connecting CNN predictions to Google Gemini.}
+\captionsetup{font=small}
+\begin{minipage}[t]{0.48\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=5.4cm,keepaspectratio]{image/gradcam.png}
+\captionof{figure}[Grad-CAM visual explanations from Proposed MobileNetV2.]{Grad-CAM from the proposed MobileNetV2 (\texttt{Conv\_1}): original image, heatmap and overlay on unseen test leaves.}
+\label{fig:02_gradcam}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=5.4cm,keepaspectratio]{image/multinet_gradcam.png}
+\captionof{figure}[Grad-CAM visual explanations from MultiNet-V3 Ensemble.]{Grad-CAM from the MultiNet-V3 Ensemble (\texttt{ensemble\_\allowbreak spatial\_\allowbreak features}) on the same test leaves.}
+\label{fig:multinet_gradcam}
+\end{minipage}
+
+\vspace{6mm}
+
+\begin{minipage}[t]{0.48\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=5.4cm,keepaspectratio]{image/inception_gradcam.png}
+\captionof{figure}[Grad-CAM visual explanations from the InceptionV3 benchmark.]{Grad-CAM from the InceptionV3 benchmark (\texttt{conv2d\_93}, $299 \times 299$) on the same test leaves.}
+\label{fig:inception_gradcam}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=5.4cm,keepaspectratio]{image/docx_image25.png}
+\captionof{figure}[Classifier-to-LLM disease advisory workflow.]{Classifier-to-LLM advisory workflow with safety rules, from the CNN prediction to Google Gemini.}
 \label{fig:llm_pipeline}
+\end{minipage}
 \end{figure}
 
 \subsubsection{Web Application Deployment and Screens}
@@ -408,40 +418,44 @@ The \textit{Batch Analysis} screen (Figure~\ref{fig:webapp_batch}) checks up to 
 
 The \textit{Disease Assistant} chat (Figure~\ref{fig:ai_assistant}) starts a Google Gemini conversation from the predicted class and confidence, in \textbf{Bengali} or \textbf{English}. The figure shows both Light and Dark themes. The assistant always adds safety notes and gives no doses.
 
-The \textit{Info} screen (Figure~\ref{fig:webapp_info}) puts the advice on five cards: \textit{Overview}, \textit{Symptoms}, \textit{Possible causes}, \textit{Recommended actions} and \textit{Prevention}. A notice that this is only a first screening stays on the screen.
-
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
-\includegraphics[width=0.92\textwidth]{image/Select file or Take photo.png}
-\caption{Deployed farmer web application (\url{https://potato.mamunlab.com/}) \textit{Detect} interface supporting drag-and-drop image upload and smartphone camera capture.}
+\captionsetup{font=small}
+\begin{minipage}[t]{0.48\textwidth}
+\centering
+\includegraphics[width=\linewidth]{image/Select file or Take photo.png}
+\captionof{figure}[Web application \textit{Detect} interface.]{\textit{Detect} page of the web app (\url{https://potato.mamunlab.com/}) with drag-and-drop upload and camera capture.}
 \label{fig:webapp_detect}
-\end{figure}
-
-\begin{figure}[htbp]
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\textwidth}
 \centering
-\includegraphics[width=0.92\textwidth]{image/Detection results.png}
-\caption{\textit{Results} interface presenting predicted disease class, confidence, probability distribution, Grad-CAM attention overlay, and PDF report export.}
+\includegraphics[width=\linewidth]{image/Detection results.png}
+\captionof{figure}[Web application \textit{Results} interface.]{\textit{Results} page with the predicted class, confidence, class probabilities, Grad-CAM overlay and PDF export.}
 \label{fig:webapp_results}
-\end{figure}
+\end{minipage}
 
-\begin{figure}[htbp]
+\vspace{6mm}
+
+\begin{minipage}[t]{0.48\textwidth}
 \centering
-\includegraphics[width=0.92\textwidth]{image/Batch analysis.png}
-\caption{\textit{Batch Analysis} interface screening up to 12 leaf photographs simultaneously with Healthy/Diseased totals, Top-3 probabilities, and CSV export.}
+\includegraphics[width=\linewidth]{image/Batch analysis.png}
+\captionof{figure}[Web application \textit{Batch Analysis} interface.]{\textit{Batch Analysis} page for up to 12 leaf photos, with Healthy/Diseased totals, top-3 probabilities and CSV export.}
 \label{fig:webapp_batch}
-\end{figure}
-
-\begin{figure}[htbp]
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\textwidth}
 \centering
-\includegraphics[width=0.92\textwidth]{image/Disease assistant - LLM.png}
-\caption{Bilingual (Bengali and English, Light and Dark modes) \textit{Disease Assistant} chat interface powered by Google Gemini and grounded in the classifier prediction.}
+\includegraphics[width=\linewidth]{image/Disease assistant - LLM.png}
+\captionof{figure}[Bilingual \textit{Disease Assistant} chat interface.]{\textit{Disease Assistant} chat in Bengali and English (Light and Dark modes), powered by Google Gemini.}
 \label{fig:ai_assistant}
+\end{minipage}
 \end{figure}
 
-\begin{figure}[htbp]
+The \textit{Info} screen (Figure~\ref{fig:webapp_info}) puts the advice on five cards: \textit{Overview}, \textit{Symptoms}, \textit{Possible causes}, \textit{Recommended actions} and \textit{Prevention}. The figure shows the cards for \textit{Fungal Disease}. Each card has a short title and a few bullet points in plain words, so a farmer can read it quickly. An \textit{Ask AI about this} button opens the chat, and a notice at the bottom says that this is only a first screening, not a final diagnosis.
+
+\begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.92\textwidth]{image/Disease overview.png}
-\caption{Structured \textit{Info} view providing Overview, Symptoms, Possible causes, Recommended actions, and Prevention cards for farmers.}
+\includegraphics[width=0.55\textwidth]{image/Disease overview.png}
+\caption[Web application \textit{Info} interface.]{Structured \textit{Info} view providing Overview, Symptoms, Possible causes, Recommended actions, and Prevention cards for farmers.}
 \label{fig:webapp_info}
 \end{figure}
 
@@ -452,9 +466,9 @@ Table~\ref{tab:sota_comp} places our MobileNetV2 next to well-known plant diseas
 \caption{Comparison of the Proposed MobileNetV2 System with State-of-the-Art Studies and Internal Benchmarks}
 \label{tab:sota_comp}
 \begin{center}
-\scriptsize
+\small
 \setlength{\tabcolsep}{3.5pt}
-\begin{tabularx}{\textwidth}{| p{2.1cm} | p{2.2cm} | p{2.1cm} | X | p{1.6cm} | c | c |}
+\begin{tabularx}{\textwidth}{| L{2.5cm} | L{2.2cm} | L{2.1cm} | X | L{1.6cm} | c | c |}
 \hline
 \textbf{Study / Model} & \textbf{Dataset / Setting} & \textbf{Architecture} & \textbf{Reported Outcome} & \textbf{Scale} & \textbf{XAI} & \textbf{App/LLM} \\
 \hline
