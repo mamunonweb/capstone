@@ -5,7 +5,7 @@
 
 \section{Standards, Constraints, and Milestones}
 
-A good model is not enough for a farm tool. We also need to follow engineering standards, think about the environment and ethics, and be honest about the limits of the project. In this chapter we show how the project fits the United Nations Sustainable Development Goals (SDGs) and some software standards. We then look at the effect on society, ethics, the problems we faced, the project constraints and the 26-week timeline.
+A good model is not enough for a farm tool. We also need to follow engineering standards, think about the environment and ethics, and be honest about the limits of the project. In this chapter we show how the project fits the United Nations Sustainable Development Goals (SDGs) and some software standards. We then look at the effect on society, ethics, the problems we faced and the 26-week timeline.
 
 \subsection{Sustainability Standards}
 The project supports five UN Sustainable Development Goals (SDGs). It also follows some basic software and testing standards.
@@ -70,17 +70,6 @@ We faced four main technical problems and solved them as follows.
 \textit{Saving and loading the models.} At first, custom Keras \texttt{Lambda} layers made the models hard to save, and evaluating inside the GPU strategy gave slightly different probabilities. We replaced the \texttt{Lambda} layers with built-in \texttt{Rescaling} and frozen $1 \times 1$ \texttt{Conv2D} layers, and we reloaded the checkpoints outside \texttt{MirroredStrategy}. After that, the exported files matched exactly ($0.00 \times 10^{0}$) for all four models.
 
 \textit{Diseases that look alike.} \textit{Fungal Disease}, \textit{Phytophthora} and early lesions look very similar, especially on a busy soil background. This was still the main source of errors. It is the reason we added brightness augmentation and 4-view TTA.
-
-\subsection{Constraints}
-The design had to stay inside four kinds of limits.
-
-\textit{Design limits.} The model must keep the 5-class order and the $224 \times 224 \times 3$ input with values in $[0, 1]$. It had to stay under 10~MB (it is 8.64~MB, with no custom layers). It had to work with Grad-CAM on \texttt{Conv\_1}. Gemini had to follow rules: no diagnosis claims and no doses.
-
-\textit{Component limits.} The dataset has only 2,321 field images, and the test set has 231. This is too small to train a deep network from scratch, so we needed ImageNet transfer learning. The Gemini chat also needs an internet connection and a working outside API, and in remote villages the connection may drop.
-
-\textit{Budget limits.} This was an unfunded student capstone project. We used the free Kaggle dual-T4 GPU hours, open-source Python and React tools and the low-cost \texttt{gemini-3.1-flash-lite} API. We had no paid GPU cluster and no budget to collect our own field data.
-
-\textit{Operational and legal limits.} If farmers treat the app's advice as a prescription, wrong advice could cause harm. So the app is only a first screening and learning tool. For any chemical use, it sends farmers to the product label and the local agricultural officer.
 
 \subsection{Timeline and Gantt Chart}
 The project took 26 weeks. Phase~I (Weeks~1--13) covered planning, data work and model design. Phase~II (Weeks~14--26) covered training and comparing the models, tuning, web deployment and writing. Figures~\ref{fig:gantt1} and~\ref{fig:gantt2} show the Gantt charts.
